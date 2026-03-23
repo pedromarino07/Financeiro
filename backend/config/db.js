@@ -7,7 +7,7 @@ dotenv.config();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false // Isso resolve a conexão com o Neon no Render
   }
 });
 
