@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "orgno123@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // Transações: Por enquanto, permitimos leitura e escrita para todos para facilitar o teste,
+    // mas em produção deveríamos restringir por usuário.
+    // Como o app atual não tem login no frontend ainda (usa usuario_id fixo ou nulo),
+    // vamos permitir acesso geral por enquanto, mas com validação básica.
+    
+    match /transacoes/{transacaoId} {
+      allow read: if true;
+      allow create: if request.resource.data.valor is number && 
+                      request.resource.data.valor > 0 &&
+                      request.resource.data.descricao is string &&
+                      request.resource.data.tipo in ['entrada', 'saida', 'receita', 'despesa'];
+      allow update, delete: if isAdmin();
+    }
+
+    match /usuarios/{userId} {
+      allow read, write: if request.auth.uid == userId || isAdmin();
+    }
+    
+    match /categorias/{categoriaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

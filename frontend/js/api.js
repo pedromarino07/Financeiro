@@ -7,10 +7,16 @@ const API_BASE_URL = '/api/transacoes';
 
 /**
  * Busca o resumo financeiro (entradas, saídas e saldo)
+ * @param {number} mes 
+ * @param {number} ano 
  */
-async function getResumo(usuarioId) {
+async function getResumo(mes, ano) {
     try {
-        const response = await fetch(`${API_BASE_URL}/resumo?usuario_id=${usuarioId}`);
+        let url = `${API_BASE_URL}/resumo`;
+        if (mes && ano) {
+            url += `?mes=${mes}&ano=${ano}`;
+        }
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Erro ao buscar resumo financeiro');
         }
@@ -22,11 +28,19 @@ async function getResumo(usuarioId) {
 }
 
 /**
- * Busca as últimas 5 transações registradas
+ * Busca as transações registradas com paginação
+ * @param {number} mes 
+ * @param {number} ano 
+ * @param {number} pagina
+ * @param {number} limite
  */
-async function getListaTransacoes(usuarioId) {
+async function getListaTransacoes(mes, ano, pagina = 1, limite = 5) {
     try {
-        const response = await fetch(`${API_BASE_URL}/lista?usuario_id=${usuarioId}`);
+        let url = `${API_BASE_URL}/lista?pagina=${pagina}&limite=${limite}`;
+        if (mes && ano) {
+            url += `&mes=${mes}&ano=${ano}`;
+        }
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Erro ao buscar lista de transações');
         }
@@ -63,16 +77,58 @@ async function postTransacao(transacao) {
 
 /**
  * Busca dados para o gráfico de despesas por categoria
+ * @param {number} mes 
+ * @param {number} ano 
  */
-async function getDadosGrafico(usuarioId) {
+async function getDadosGrafico(mes, ano) {
     try {
-        const response = await fetch(`/api/grafico/despesas?usuario_id=${usuarioId}`);
+        let url = '/api/grafico/despesas';
+        if (mes && ano) {
+            url += `?mes=${mes}&ano=${ano}`;
+        }
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Erro ao buscar dados do gráfico');
         }
         return await response.json();
     } catch (error) {
         console.error('Erro na API (Gráfico):', error);
+        throw error;
+    }
+}
+
+/**
+ * Busca os períodos (mês/ano) que possuem transações
+ */
+async function getPeriodosDisponiveis() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/periodos-disponiveis`);
+        if (!response.ok) {
+            throw new Error('Erro ao buscar períodos disponíveis');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Erro na API (Períodos):', error);
+        throw error;
+    }
+}
+
+/**
+ * Envia uma requisição DELETE para remover uma transação
+ * @param {number} id 
+ */
+async function deleteTransacao(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao excluir transação');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Erro na API (DELETE):', error);
         throw error;
     }
 }

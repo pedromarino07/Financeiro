@@ -4,19 +4,45 @@
  */
 
 let myChart = null; // Armazena a instância do gráfico
+let currentPage = 1; // Página atual da tabela
+const itemsPerPage = 5; // Limite de itens por página
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar se o usuário está logado
+    // 1. Verificar se o usuário está logado
     const usuarioId = localStorage.getItem('usuarioId');
     const usuarioNome = localStorage.getItem('usuarioNome');
 
     if (!usuarioId) {
-        // Se não estiver logado, redireciona para o login
         window.location.href = 'login.html';
         return;
     }
 
-    // Exibir informações do usuário
+    // 2. Configurar Modo Escuro/Claro
+    const themeToggle = document.getElementById('theme-toggle');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+    atualizarIconeTema();
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        
+        atualizarIconeTema();
+        
+        // Atualiza o gráfico se existir
+        if (myChart) {
+            carregarDashboard();
+        }
+    });
+
+    // 3. Configurar Filtro Mensal
+    const periodFilter = document.getElementById('periodo');
+    
+    // 4. Exibir informações do usuário
     const userDisplay = document.getElementById('user-display');
     const userName = document.getElementById('user-name');
     const btnLogout = document.getElementById('btn-logout');
@@ -34,37 +60,146 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    carregarDashboard(usuarioId);
+    // 5. Carregar dados iniciais
+    carregarPeriodosEPagina();
     
-    // Adiciona o listener para o formulário
     const form = document.getElementById('finance-form');
     if (form) {
         form.addEventListener('submit', (e) => enviarTransacao(e, usuarioId));
     }
+
+    periodFilter.addEventListener('change', () => {
+        localStorage.setItem('filtroPeriodo', periodFilter.value);
+        currentPage = 1; // Resetar para a primeira página ao mudar o filtro
+        carregarDashboard();
+    });
+
+    // 6. Configurar Paginação
+    const btnPrev = document.getElementById('prev-page');
+    const btnNext = document.getElementById('next-page');
+
+    if (btnPrev && btnNext) {
+        btnPrev.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                carregarDashboard();
+            }
+        });
+
+        btnNext.addEventListener('click', () => {
+            currentPage++;
+            carregarDashboard();
+        });
+    }
+
+    // 7. Criar container de toasts
+    const toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
 });
+
+/**
+ * Carrega os períodos disponíveis e então carrega o dashboard
+ */
+async function carregarPeriodosEPagina() {
+    const periodFilter = document.getElementById('periodo');
+    try {
+        const periodos = await getPeriodosDisponiveis();
+        
+        // Limpa o select
+        periodFilter.innerHTML = '';
+        
+        if (periodos.length === 0) {
+            const agora = new Date();
+            const mesAtual = agora.getMonth(); // 0-indexed: 2 para Março
+            const anoAtual = agora.getFullYear();
+            const option = document.createElement('option');
+            option.value = `${mesAtual}-${anoAtual}`;
+            option.textContent = `${getNomeMes(mesAtual)} ${anoAtual}`;
+            periodFilter.appendChild(option);
+        } else {
+            periodos.forEach(p => {
+                const option = document.createElement('option');
+                // Ajusta mês do backend (1-indexed) para frontend (0-indexed)
+                const mesZeroIndexed = p.mes - 1;
+                option.value = `${mesZeroIndexed}-${p.ano}`;
+                option.textContent = `${getNomeMes(mesZeroIndexed)} ${p.ano}`;
+                periodFilter.appendChild(option);
+            });
+        }
+
+        // Recuperar filtro salvo ou usar o atual/primeiro disponível
+        const filtroSalvo = localStorage.getItem('filtroPeriodo');
+        if (filtroSalvo && Array.from(periodFilter.options).some(opt => opt.value === filtroSalvo)) {
+            periodFilter.value = filtroSalvo;
+        } else {
+            // Se não houver filtro salvo ou o salvo não existir mais, pega o primeiro (mais recente)
+            periodFilter.selectedIndex = 0;
+            localStorage.setItem('filtroPeriodo', periodFilter.value);
+        }
+
+        // Carregar dashboard após popular períodos
+        carregarDashboard();
+    } catch (error) {
+        console.error('Erro ao carregar períodos:', error);
+        // Fallback básico em caso de erro
+        const agora = new Date();
+        const mesAtual = agora.getMonth() + 1;
+        const anoAtual = agora.getFullYear();
+        periodFilter.innerHTML = `<option value="${mesAtual}-${anoAtual}">${getNomeMes(mesAtual)} ${anoAtual}</option>`;
+        carregarDashboard();
+    }
+}
+
+/**
+ * Retorna o nome do mês a partir do número
+ * @param {number} mes 
+ */
+function getNomeMes(mes) {
+    const meses = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    return meses[mes]; // mes 2 -> Março
+}
+
+/**
+ * Atualiza o ícone do tema (Sol/Lua)
+ */
+function atualizarIconeTema() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const isDark = document.body.classList.contains('dark-mode');
+    
+    // Substitui o conteúdo do botão para garantir que o Lucide funcione corretamente
+    themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}"></i>`;
+    lucide.createIcons();
+}
 
 /**
  * Função principal que carrega os dados do dashboard
  */
-async function carregarDashboard(usuarioId) {
+async function carregarDashboard() {
     try {
-        // Chama as funções de api.js para buscar os dados
-        const resumo = await getResumo(usuarioId);
-        const transacoes = await getListaTransacoes(usuarioId);
-        const dadosGrafico = await getDadosGrafico(usuarioId);
-        
-        // Preenche os cards de resumo (DOM)
-        preencherCards(resumo);
-        
-        // Preenche a tabela de transações (DOM)
-        preencherTabela(transacoes);
+        const periodFilter = document.getElementById('periodo');
+        if (!periodFilter.value) return;
 
-        // Renderiza o gráfico de rosca
+        const [mes, ano] = periodFilter.value.split('-').map(Number);
+
+        // Busca dados filtrados - Ajusta mês 0-indexed para 1-indexed para a API
+        const resumo = await getResumo(mes + 1, ano);
+        const listaData = await getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage);
+        const dadosGrafico = await getDadosGrafico(mes + 1, ano);
+        
+        preencherCards(resumo);
+        preencherTabela(listaData.transacoes);
         renderizarGrafico(dadosGrafico);
         
+        // Atualiza controles de paginação
+        atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
+        
     } catch (error) {
-        console.error('Erro detalhado:', error); // Isso vai mostrar no F12 exatamente o que quebrou
-        alert('Erro: ' + error.message);
+        console.error('Erro ao carregar dashboard:', error);
     }
 }
 
@@ -88,6 +223,10 @@ function renderizarGrafico(dados) {
     const labels = dados.map(d => d.categoria);
     const valores = dados.map(d => d.total);
 
+    const isMobile = window.innerWidth < 768;
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    const textColor = isDarkMode ? '#e0e0e0' : '#7f8c8d';
+
     myChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -95,7 +234,7 @@ function renderizarGrafico(dados) {
             datasets: [{
                 data: valores,
                 backgroundColor: [
-                    '#2c3e50', '#e74c3c', '#27ae60', '#f1c40f', 
+                    '#3d5afe', '#e74c3c', '#27ae60', '#f1c40f', 
                     '#8e44ad', '#3498db', '#d35400'
                 ],
                 borderWidth: 1
@@ -108,14 +247,18 @@ function renderizarGrafico(dados) {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        boxWidth: 12,
-                        padding: 20,
+                        color: textColor,
+                        boxWidth: isMobile ? 8 : 12,
+                        padding: isMobile ? 10 : 20,
                         font: {
-                            size: 12
+                            size: isMobile ? 10 : 12
                         }
                     }
                 },
                 tooltip: {
+                    bodyFont: {
+                        size: isMobile ? 10 : 12
+                    },
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
@@ -167,12 +310,12 @@ async function enviarTransacao(event, usuarioId) {
         // Limpa o formulário após sucesso
         event.target.reset();
         
-        // Atualiza o dashboard automaticamente
-        await carregarDashboard(usuarioId);
+        // Atualiza o dashboard e os períodos automaticamente
+        await carregarPeriodosEPagina();
         
-        alert('Transação adicionada com sucesso!');
+        showToast('Transação adicionada com sucesso!', 'success');
     } catch (error) {
-        alert('Erro ao adicionar transação: ' + error.message);
+        showToast('Erro ao adicionar transação: ' + error.message, 'error');
     }
 }
 
@@ -199,7 +342,7 @@ function preencherTabela(transacoes) {
     tbody.innerHTML = ''; // Limpa a tabela antes de popular
 
     if (transacoes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: #7f8c8d;">Nenhuma transação encontrada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #7f8c8d;">Nenhuma transação encontrada.</td></tr>';
         return;
     }
 
@@ -209,8 +352,8 @@ function preencherTabela(transacoes) {
         // Formatação de valores e datas
         const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
         const formatDate = (dateStr) => {
-            const data = new Date(dateStr);
-            return data.getUTCDate() + '/' + (data.getUTCMonth() + 1) + '/' + data.getUTCFullYear();
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
         };
         
         const typeClass = `type-${transaction.tipo.toLowerCase()}`;
@@ -218,13 +361,97 @@ function preencherTabela(transacoes) {
 
         // Criação dinâmica da linha (<tr>)
         row.innerHTML = `
-            <td>${transaction.descricao}</td>
-            <td class="${typeClass}">${formatCurrency(transaction.valor)}</td>
-            <td>${formatDate(transaction.data)}</td>
-            <td>${transaction.categoria}</td>
-            <td><span class="${typeClass}">${typeLabel}</span></td>
+            <td data-label="Descrição">${transaction.descricao}</td>
+            <td data-label="Valor" class="${typeClass}">${formatCurrency(transaction.valor)}</td>
+            <td data-label="Data">${formatDate(transaction.data)}</td>
+            <td data-label="Categoria">${transaction.categoria}</td>
+            <td data-label="Tipo"><span class="${typeClass}">${typeLabel}</span></td>
+            <td>
+                <button class="btn-delete" onclick="excluirTransacao('${transaction.id}')" title="Excluir">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </td>
         `;
         
         tbody.appendChild(row);
     });
+
+    // Inicializa os ícones da tabela
+    lucide.createIcons();
+}
+
+/**
+ * Exclui uma transação após confirmação
+ * @param {string} id 
+ */
+async function excluirTransacao(id) {
+    console.log('Tentando excluir ID:', id);
+    if (confirm('Tem certeza que deseja excluir esta transação?')) {
+        try {
+            await deleteTransacao(id);
+            // Se excluir o último item da página, volta uma página (se não for a primeira)
+            const tbody = document.getElementById('transactions-body');
+            if (tbody.children.length === 1 && currentPage > 1) {
+                currentPage--;
+            }
+            // Recarrega o dashboard para atualizar cards, gráfico e tabela
+            await carregarDashboard();
+            // Também recarrega os períodos caso a exclusão tenha removido o último registro de um mês
+            await carregarPeriodosEPagina();
+            
+            showToast('Transação excluída com sucesso!', 'success');
+        } catch (error) {
+            showToast('Erro ao excluir: ' + error.message, 'error');
+        }
+    }
+}
+
+// Torna a função global para que o onclick no HTML funcione
+window.excluirTransacao = excluirTransacao;
+
+/**
+ * Exibe uma notificação toast na tela
+ * @param {string} message 
+ * @param {string} type 'success' | 'error'
+ */
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
+    
+    toast.innerHTML = `
+        <i data-lucide="${iconName}"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    // Remove o toast após 3 segundos
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+/**
+ * Atualiza os controles de paginação na interface
+ * @param {number} pagina 
+ * @param {number} totalPaginas 
+ */
+function atualizarPaginacao(pagina, totalPaginas) {
+    const btnPrev = document.getElementById('prev-page');
+    const btnNext = document.getElementById('next-page');
+    const pageInfo = document.getElementById('page-info');
+
+    if (btnPrev && btnNext && pageInfo) {
+        currentPage = pagina;
+        pageInfo.textContent = `Página ${pagina} de ${totalPaginas || 1}`;
+        
+        btnPrev.disabled = pagina <= 1;
+        btnNext.disabled = pagina >= totalPaginas || totalPaginas === 0;
+    }
 }

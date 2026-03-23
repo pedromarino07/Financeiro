@@ -5,34 +5,41 @@ const router = express.Router();
 
 /**
  * Rota: GET /api/transacoes/resumo
- * Calcula o total de entradas, total de saídas e o saldo usando SQL puro (SUM())
+ * Calcula o total de entradas, saídas comuns, total guardado e o saldo livre
+ * Aceita parâmetros opcionais de mês e ano
  */
 router.get('/resumo', async (req, res) => {
-  const { usuario_id } = req.query;
-
-  if (!usuario_id) {
-    return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
-  }
-
+  const { mes, ano } = req.query;
   try {
+    let whereClause = '';
+    const values = [];
+    
+    if (mes && ano) {
+      whereClause = 'WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2';
+      values.push(parseInt(mes), parseInt(ano));
+    }
+
     const query = `
       SELECT 
         COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END), 0) as total_entradas,
-        COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria NOT IN ('Investimentos', 'Poupança', 'Ações') THEN valor ELSE 0 END), 0) as total_saidas_comuns,
-        COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria IN ('Investimentos', 'Poupança', 'Ações') THEN valor ELSE 0 END), 0) as total_guardado
+        COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria NOT IN ('Poupança', 'Investimentos') THEN valor ELSE 0 END), 0) as total_saidas_comuns,
+        COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria IN ('Poupança', 'Investimentos') THEN valor ELSE 0 END), 0) as total_guardado
       FROM transacoes
-      WHERE usuario_id = $1
+      ${whereClause};
     `;
-    const { rows } = await pool.query(query, [usuario_id]);
-    const { total_entradas, total_saidas_comuns, total_guardado } = rows[0];
+    const { rows } = await pool.query(query, values);
     
-    // Saldo Livre = Total Entradas - (Total Saídas Comuns + Total Guardado)
-    const saldo_livre = parseFloat(total_entradas) - (parseFloat(total_saidas_comuns) + parseFloat(total_guardado));
+    const total_entradas = parseFloat(rows[0].total_entradas);
+    const total_saidas_comuns = parseFloat(rows[0].total_saidas_comuns);
+    const total_guardado = parseFloat(rows[0].total_guardado);
+    
+    // Regra de Negócio: Saldo Livre = Entradas - Saídas Comuns - Total Guardado
+    const saldo_livre = total_entradas - total_saidas_comuns - total_guardado;
 
     res.json({
-      total_entradas: parseFloat(total_entradas),
-      total_saidas: parseFloat(total_saidas_comuns), // Mantendo nome para compatibilidade se necessário
-      total_guardado: parseFloat(total_guardado),
+      total_entradas: total_entradas,
+      total_saidas: total_saidas_comuns,
+      total_guardado: total_guardado,
       saldo: saldo_livre
     });
   } catch (error) {
@@ -43,24 +50,52 @@ router.get('/resumo', async (req, res) => {
 
 /**
  * Rota: GET /api/transacoes/lista
- * Retorna a lista das últimas 5 transações ordenadas por data
+ * Retorna a lista de transações paginada
+ * Aceita parâmetros opcionais de mês, ano, pagina e limite
  */
 router.get('/lista', async (req, res) => {
-  const { usuario_id } = req.query;
-
-  if (!usuario_id) {
-    return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
-  }
+  const { mes, ano, pagina = 1, limite = 5 } = req.query;
+  const page = parseInt(pagina);
+  const limit = parseInt(limite);
+  const offset = (page - 1) * limit;
 
   try {
-    const query = `
+    let whereClause = '';
+    const values = [];
+    
+    if (mes && ano) {
+      whereClause = 'WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2';
+      values.push(parseInt(mes), parseInt(ano));
+    }
+
+    // Query para contar o total de registros
+    const countQuery = `SELECT COUNT(*) FROM transacoes ${whereClause}`;
+    const countResult = await pool.query(countQuery, values);
+    const totalRecords = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    // Query para buscar os dados paginados
+    const dataQuery = `
       SELECT * FROM transacoes 
-      WHERE usuario_id = $1
+      ${whereClause}
       ORDER BY data DESC, criado_em DESC 
-      LIMIT 5
+      LIMIT $${values.length + 1} OFFSET $${values.length + 2}
     `;
-    const { rows } = await pool.query(query, [usuario_id]);
-    res.json(rows);
+    const dataValues = [...values, limit, offset];
+    const { rows } = await pool.query(dataQuery, dataValues);
+    
+    // Garante que o valor seja numérico antes de enviar ao frontend
+    const transacoes = rows.map(t => ({
+      ...t,
+      valor: parseFloat(t.valor)
+    }));
+    
+    res.json({
+      transacoes,
+      pagina: page,
+      totalPaginas: totalPages,
+      totalRegistros: totalRecords
+    });
   } catch (error) {
     console.error('Erro ao buscar lista de transações:', error);
     res.status(500).json({ error: 'Erro interno do servidor ao buscar lista' });
@@ -96,6 +131,55 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Erro ao inserir transação:', error);
     res.status(500).json({ error: 'Erro interno do servidor ao salvar transação' });
+  }
+});
+
+/**
+ * Rota: GET /api/transacoes/periodos-disponiveis
+ * Busca meses e anos únicos que possuem transações
+ */
+router.get('/periodos-disponiveis', async (req, res) => {
+  try {
+    const query = `
+      SELECT DISTINCT 
+        EXTRACT(MONTH FROM data) AS mes, 
+        EXTRACT(YEAR FROM data) AS ano 
+      FROM transacoes 
+      ORDER BY ano DESC, mes DESC;
+    `;
+    const { rows } = await pool.query(query);
+    
+    // Converte os valores para inteiros
+    const periodos = rows.map(row => ({
+      mes: parseInt(row.mes),
+      ano: parseInt(row.ano)
+    }));
+    
+    res.json(periodos);
+  } catch (error) {
+    console.error('Erro ao buscar períodos disponíveis:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar períodos' });
+  }
+});
+
+/**
+ * Rota: DELETE /api/transacoes/:id
+ * Remove uma transação pelo ID
+ */
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = 'DELETE FROM transacoes WHERE id = $1 RETURNING *';
+    const { rows } = await pool.query(query, [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Transação não encontrada.' });
+    }
+    
+    res.json({ message: 'Transação excluída com sucesso.', transacao: rows[0] });
+  } catch (error) {
+    console.error('Erro ao excluir transação:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao excluir transação' });
   }
 });
 

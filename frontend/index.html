@@ -5,20 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de Finanças Pessoais</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
-        <h1>Gerenciador de Finanças Pessoais</h1>
-        <p>Controle suas entradas e saídas de forma simples.</p>
-        <div class="user-info" id="user-display" style="display: none;">
-            <span>Olá, <strong id="user-name">Usuário</strong></span>
-            <button id="btn-logout">Sair</button>
+        <div class="header-top">
+            <div class="logo">
+                <i data-lucide="bar-chart-3"></i>
+                <span>Gestor Finanças</span>
+            </div>
+            <div class="header-controls">
+                <button id="theme-toggle" title="Alternar Tema">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                </button>
+                <div class="user-info" id="user-display" style="display: none;">
+                    <span>Olá, <strong id="user-name">Usuário</strong></span>
+                    <button id="btn-logout" title="Sair">
+                        <i data-lucide="log-out"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
     <main>
+        <!-- Filtro Mensal -->
+        <section class="filter-section">
+            <div class="filter-group">
+                <label for="periodo">Período:</label>
+                <select id="periodo">
+                    <!-- Opções serão geradas via JS -->
+                </select>
+            </div>
+        </section>
+
         <!-- Formulário de Nova Transação -->
         <section class="transaction-form">
             <h2>Nova Transação</h2>
@@ -58,7 +81,10 @@
                         <option value="saida">Saída</option>
                     </select>
                 </div>
-                <button type="submit" id="btn-add">Adicionar Transação</button>
+                <button type="submit" id="btn-add">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Adicionar</span>
+                </button>
             </form>
         </section>
 
@@ -68,7 +94,7 @@
                 <p id="total-income">R$ 0,00</p>
             </div>
             <div class="card expense">
-                <h3>Saídas Comuns</h3>
+                <h3>Saídas</h3>
                 <p id="total-expense">R$ 0,00</p>
             </div>
             <div class="card investment">
@@ -94,12 +120,25 @@
                                 <th>Data</th>
                                 <th>Categoria</th>
                                 <th>Tipo</th>
+                                <th style="width: 50px;"></th>
                             </tr>
                         </thead>
                         <tbody id="transactions-body">
                             <!-- Transações serão carregadas aqui via JS -->
                         </tbody>
                     </table>
+                </div>
+                <!-- Paginação -->
+                <div class="pagination">
+                    <button id="prev-page" class="btn-pagination" disabled>
+                        <i data-lucide="chevron-left"></i>
+                        Anterior
+                    </button>
+                    <span id="page-info">Página 1 de 1</span>
+                    <button id="next-page" class="btn-pagination" disabled>
+                        Próximo
+                        <i data-lucide="chevron-right"></i>
+                    </button>
                 </div>
             </section>
 
@@ -118,5 +157,9 @@
 
     <script src="js/api.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // Inicializa os ícones do Lucide
+        lucide.createIcons();
+    </script>
 </body>
 </html>

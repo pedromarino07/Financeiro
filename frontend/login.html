@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Gerenciador de Finanças</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="login-page">
     <div class="login-container">
         <div class="login-box">
-            <h1>Finanças Pessoais</h1>
-            <p>Entre para gerenciar seus gastos</p>
+            <div class="logo" style="justify-content: center; margin-bottom: 2rem;">
+                <i data-lucide="bar-chart-3" style="width: 32px; height: 32px;"></i>
+                <span style="font-size: 1.5rem;">Gestor Finanças</span>
+            </div>
             
             <form id="login-form">
                 <div class="form-group">
@@ -27,19 +31,14 @@
             <div id="login-error" class="error-message" style="display: none;">
                 Email ou senha incorretos.
             </div>
-
-            <div class="login-info">
-                <p>Usuários de teste:</p>
-                <ul>
-                    <li>pedro@email.com (123456)</li>
-                    <li>josy@email.com (123456)</li>
-                </ul>
-            </div>
         </div>
     </div>
 
     <script src="js/api.js"></script>
     <script>
+        // Inicializa os ícones do Lucide
+        lucide.createIcons();
+
         // Script de Login
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
