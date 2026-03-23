@@ -63,8 +63,8 @@ async function carregarDashboard(usuarioId) {
         renderizarGrafico(dadosGrafico);
         
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
-        alert('Não foi possível carregar os dados do dashboard. Verifique a conexão com o servidor.');
+        console.error('Erro detalhado:', error); // Isso vai mostrar no F12 exatamente o que quebrou
+        alert('Erro: ' + error.message);
     }
 }
 
@@ -208,7 +208,10 @@ function preencherTabela(transacoes) {
         
         // Formatação de valores e datas
         const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-        const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('pt-BR');
+        const formatDate = (dateStr) => {
+            const data = new Date(dateStr);
+            return data.getUTCDate() + '/' + (data.getUTCMonth() + 1) + '/' + data.getUTCFullYear();
+        };
         
         const typeClass = `type-${transaction.tipo.toLowerCase()}`;
         const typeLabel = transaction.tipo.charAt(0).toUpperCase() + transaction.tipo.slice(1);

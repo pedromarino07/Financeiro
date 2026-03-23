@@ -16,11 +16,10 @@ router.get('/despesas', async (req, res) => {
 
   try {
     const query = `
-      SELECT categoria, SUM(valor) as total
-      FROM transacoes
-      WHERE tipo = 'saida' AND usuario_id = $1
+      SELECT categoria, SUM(valor) as total 
+      FROM transacoes 
+      WHERE tipo = 'saida' 
       GROUP BY categoria
-      ORDER BY total DESC
     `;
     const { rows } = await pool.query(query, [usuario_id]);
     
