@@ -6,24 +6,52 @@
 let myChart = null; // Armazena a instância do gráfico
 
 document.addEventListener('DOMContentLoaded', () => {
-    carregarDashboard();
+    // Verificar se o usuário está logado
+    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioNome = localStorage.getItem('usuarioNome');
+
+    if (!usuarioId) {
+        // Se não estiver logado, redireciona para o login
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Exibir informações do usuário
+    const userDisplay = document.getElementById('user-display');
+    const userName = document.getElementById('user-name');
+    const btnLogout = document.getElementById('btn-logout');
+
+    if (userDisplay && userName) {
+        userName.textContent = usuarioNome;
+        userDisplay.style.display = 'flex';
+    }
+
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            localStorage.removeItem('usuarioId');
+            localStorage.removeItem('usuarioNome');
+            window.location.href = 'login.html';
+        });
+    }
+
+    carregarDashboard(usuarioId);
     
     // Adiciona o listener para o formulário
     const form = document.getElementById('finance-form');
     if (form) {
-        form.addEventListener('submit', enviarTransacao);
+        form.addEventListener('submit', (e) => enviarTransacao(e, usuarioId));
     }
 });
 
 /**
  * Função principal que carrega os dados do dashboard
  */
-async function carregarDashboard() {
+async function carregarDashboard(usuarioId) {
     try {
         // Chama as funções de api.js para buscar os dados
-        const resumo = await getResumo();
-        const transacoes = await getListaTransacoes();
-        const dadosGrafico = await getDadosGrafico();
+        const resumo = await getResumo(usuarioId);
+        const transacoes = await getListaTransacoes(usuarioId);
+        const dadosGrafico = await getDadosGrafico(usuarioId);
         
         // Preenche os cards de resumo (DOM)
         preencherCards(resumo);
@@ -107,8 +135,9 @@ function renderizarGrafico(dados) {
 /**
  * Captura os dados do formulário e envia para o backend
  * @param {Event} event 
+ * @param {string} usuarioId
  */
-async function enviarTransacao(event) {
+async function enviarTransacao(event, usuarioId) {
     event.preventDefault();
     
     const descricao = document.getElementById('descricao').value;
@@ -128,7 +157,8 @@ async function enviarTransacao(event) {
         valor,
         data,
         categoria,
-        tipo
+        tipo,
+        usuario_id: usuarioId
     };
 
     try {
@@ -138,7 +168,7 @@ async function enviarTransacao(event) {
         event.target.reset();
         
         // Atualiza o dashboard automaticamente
-        await carregarDashboard();
+        await carregarDashboard(usuarioId);
         
         alert('Transação adicionada com sucesso!');
     } catch (error) {

@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import transacoesRoutes from './routes/transacoes.js';
 import graficoRoutes from './routes/grafico.js';
+import authRoutes from './routes/auth.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Rotas da API
+app.use('/api/auth', authRoutes);
 app.use('/api/transacoes', transacoesRoutes);
 app.use('/api/grafico', graficoRoutes);
 

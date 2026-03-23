@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Gerenciador de Finanças</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <h1>Finanças Pessoais</h1>
+            <p>Entre para gerenciar seus gastos</p>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" placeholder="exemplo@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" placeholder="Sua senha" required>
+                </div>
+                <button type="submit" id="btn-login">Entrar</button>
+            </form>
+            
+            <div id="login-error" class="error-message" style="display: none;">
+                Email ou senha incorretos.
+            </div>
+
+            <div class="login-info">
+                <p>Usuários de teste:</p>
+                <ul>
+                    <li>pedro@email.com (123456)</li>
+                    <li>josy@email.com (123456)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Script de Login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const errorDiv = document.getElementById('login-error');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                if (response.ok) {
+                    const usuario = await response.json();
+                    
+                    // Salvar no localStorage
+                    localStorage.setItem('usuarioId', usuario.id);
+                    localStorage.setItem('usuarioNome', usuario.nome);
+                    
+                    // Redirecionar para o dashboard
+                    window.location.href = 'index.html';
+                } else {
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erro ao fazer login:', error);
+                alert('Erro ao conectar com o servidor.');
+            }
+        });
+
+        // Se já estiver logado, vai direto pro index
+        if (localStorage.getItem('usuarioId')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx backend/app.js",
+    "migrate": "tsx backend/migrate.js",
     "start": "node backend/app.js",
     "build": "echo 'No build needed'",
     "preview": "echo 'No preview needed'",

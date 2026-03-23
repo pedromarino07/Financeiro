@@ -8,9 +8,9 @@ const API_BASE_URL = '/api/transacoes';
 /**
  * Busca o resumo financeiro (entradas, saídas e saldo)
  */
-async function getResumo() {
+async function getResumo(usuarioId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/resumo`);
+        const response = await fetch(`${API_BASE_URL}/resumo?usuario_id=${usuarioId}`);
         if (!response.ok) {
             throw new Error('Erro ao buscar resumo financeiro');
         }
@@ -24,9 +24,9 @@ async function getResumo() {
 /**
  * Busca as últimas 5 transações registradas
  */
-async function getListaTransacoes() {
+async function getListaTransacoes(usuarioId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/lista`);
+        const response = await fetch(`${API_BASE_URL}/lista?usuario_id=${usuarioId}`);
         if (!response.ok) {
             throw new Error('Erro ao buscar lista de transações');
         }
@@ -64,9 +64,9 @@ async function postTransacao(transacao) {
 /**
  * Busca dados para o gráfico de despesas por categoria
  */
-async function getDadosGrafico() {
+async function getDadosGrafico(usuarioId) {
     try {
-        const response = await fetch('/api/grafico/despesas');
+        const response = await fetch(`/api/grafico/despesas?usuario_id=${usuarioId}`);
         if (!response.ok) {
             throw new Error('Erro ao buscar dados do gráfico');
         }

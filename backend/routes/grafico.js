@@ -8,15 +8,21 @@ const router = express.Router();
  * Agrupa as transações de 'saida' por categoria e soma os valores
  */
 router.get('/despesas', async (req, res) => {
+  const { usuario_id } = req.query;
+
+  if (!usuario_id) {
+    return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
+  }
+
   try {
     const query = `
       SELECT categoria, SUM(valor) as total
       FROM transacoes
-      WHERE tipo = 'saida'
+      WHERE tipo = 'saida' AND usuario_id = $1
       GROUP BY categoria
       ORDER BY total DESC
     `;
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, [usuario_id]);
     
     // Converte os valores para float
     const data = rows.map(row => ({
