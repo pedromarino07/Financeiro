@@ -10,7 +10,7 @@ const itemsPerPage = 5; // Limite de itens por página
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Verificar se o usuário está logado
     const usuarioId = localStorage.getItem('usuarioId');
-    const usuarioNome = localStorage.getItem('usuarioNome');
+    const usuarioNome = localStorage.getItem('usuario_nome');
 
     if (!usuarioId) {
         window.location.href = 'login.html';
@@ -48,14 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLogout = document.getElementById('btn-logout');
 
     if (userDisplay && userName) {
-        userName.textContent = usuarioNome;
+        userName.textContent = localStorage.getItem('usuario_nome');
         userDisplay.style.display = 'flex';
     }
 
     if (btnLogout) {
         btnLogout.addEventListener('click', () => {
             localStorage.removeItem('usuarioId');
-            localStorage.removeItem('usuarioNome');
+            localStorage.removeItem('usuario_nome');
             window.location.href = 'login.html';
         });
     }
@@ -347,7 +347,7 @@ async function enviarTransacao(event) {
     }
 
     const usuarioId = localStorage.getItem('usuarioId');
-    const usuarioNome = localStorage.getItem('usuarioNome');
+    const usuarioNome = localStorage.getItem('usuario_nome');
 
     const novaTransacao = {
         descricao,
@@ -403,12 +403,18 @@ function preencherCards(resumo) {
 function getAvatarHtml(nome) {
     if (!nome) return '';
     const inicial = nome.charAt(0).toUpperCase();
+    const primeiroNome = nome.split(' ')[0]; // Exibe apenas o primeiro nome
     let corClass = 'avatar-default';
     
     if (nome.toLowerCase().includes('pedro')) corClass = 'avatar-pedro';
     else if (nome.toLowerCase().includes('josy')) corClass = 'avatar-josy';
     
-    return `<div class="user-avatar ${corClass}" title="${nome}">${inicial}</div>`;
+    return `
+        <div class="user-info-cell">
+            <div class="user-avatar ${corClass}" title="${nome}">${inicial}</div>
+            <span class="user-name-text">${primeiroNome}</span>
+        </div>
+    `;
 }
 
 /**
@@ -416,6 +422,7 @@ function getAvatarHtml(nome) {
  * @param {Array} transacoes 
  */
 function preencherTabela(transacoes) {
+    console.log('Transações carregadas do banco:', transacoes); // Log para verificar se o nome está vindo
     const tbody = document.getElementById('transactions-body');
     tbody.innerHTML = ''; // Limpa a tabela antes de popular
 

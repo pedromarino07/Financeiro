@@ -76,7 +76,7 @@ router.get('/lista', async (req, res) => {
 
     // Query para buscar os dados paginados - Otimizada para buscar apenas o necessário
     const dataQuery = `
-      SELECT id, descricao, valor, data, categoria, tipo, cartao_nome, parcela_atual, total_parcelas
+      SELECT id, descricao, valor, data, categoria, tipo, cartao_nome, parcela_atual, total_parcelas, usuario_nome
       FROM transacoes 
       ${whereClause}
       ORDER BY data DESC, criado_em DESC 

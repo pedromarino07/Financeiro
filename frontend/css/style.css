@@ -478,6 +478,18 @@ tbody tr:hover {
 }
 
 /* User Avatars */
+.user-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-name-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
 .user-avatar {
     width: 28px;
     height: 28px;
