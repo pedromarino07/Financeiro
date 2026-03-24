@@ -76,7 +76,8 @@ router.get('/lista', async (req, res) => {
 
     // Query para buscar os dados paginados
     const dataQuery = `
-      SELECT * FROM transacoes 
+      SELECT * 
+      FROM transacoes 
       ${whereClause}
       ORDER BY data DESC, criado_em DESC 
       LIMIT $${values.length + 1} OFFSET $${values.length + 2}
@@ -104,33 +105,92 @@ router.get('/lista', async (req, res) => {
 
 /**
  * Rota: POST /api/transacoes
- * Recebe os dados da nova transação e insere no banco de dados
+ * Recebe os dados da nova transação e insere no banco de dados.
+ * Suporta parcelamento (loop de inserção) e salva o nome do autor.
  */
 router.post('/', async (req, res) => {
-  const { descricao, valor, data, categoria, tipo, usuario_id } = req.body;
+  const { 
+    descricao, 
+    valor, 
+    data, 
+    categoria, 
+    tipo, 
+    usuario_id, 
+    usuario_nome,
+    cartao_nome, 
+    total_parcelas 
+  } = req.body;
 
-  // Validação no backend
-  if (!descricao || !valor || !data || !categoria || !tipo || !usuario_id) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-  }
+  console.log('Recebendo nova transação:', req.body);
 
-  if (parseFloat(valor) <= 0) {
-    return res.status(400).json({ error: 'O valor deve ser maior que zero.' });
+  // Validação básica
+  if (!descricao || !valor || !data || !categoria || !tipo) {
+    return res.status(400).json({ error: 'Campos obrigatórios ausentes (descricao, valor, data, categoria, tipo).' });
   }
 
   try {
-    const query = `
-      INSERT INTO transacoes (descricao, valor, data, categoria, tipo, usuario_id)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `;
-    const values = [descricao, valor, data, categoria, tipo, usuario_id];
-    const { rows } = await pool.query(query, values);
+    const numParcelas = parseInt(total_parcelas) || 1;
+    const valorTotal = parseFloat(valor);
+    const valorParcela = valorTotal / numParcelas;
+    const transacoesInseridas = [];
+
+    // Loop para inserção de parcelas
+    for (let i = 0; i < numParcelas; i++) {
+      // Calcula a data da parcela (adiciona i meses)
+      const dataObjeto = new Date(data + 'T12:00:00'); // T12:00:00 evita problemas de fuso horário
+      dataObjeto.setMonth(dataObjeto.getMonth() + i);
+      const dataFormatada = dataObjeto.toISOString().split('T')[0];
+      
+      // Descrição com indicação de parcela se houver mais de uma
+      const descricaoFinal = numParcelas > 1 
+        ? `${descricao} (${i + 1}/${numParcelas})` 
+        : descricao;
+
+      // Query de inserção
+      // Nota: usuario_id pode ser nulo se o frontend não enviar, mas usuario_nome é salvo conforme solicitado
+      const query = `
+        INSERT INTO transacoes (
+          descricao, 
+          valor, 
+          data, 
+          categoria, 
+          tipo, 
+          usuario_id, 
+          usuario_nome,
+          cartao_nome, 
+          parcela_atual, 
+          total_parcelas
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *
+      `;
+      
+      const values = [
+        descricaoFinal, 
+        valorParcela, 
+        dataFormatada, 
+        categoria, 
+        tipo, 
+        usuario_id ? parseInt(usuario_id) : null,
+        usuario_nome || 'Sistema',
+        cartao_nome || null,
+        numParcelas > 1 ? (i + 1) : null,
+        numParcelas > 1 ? numParcelas : null
+      ];
+      
+      const { rows } = await pool.query(query, values);
+      transacoesInseridas.push(rows[0]);
+    }
     
-    res.status(201).json(rows[0]);
+    // Retorna a primeira transação inserida (ou todas se preferir)
+    res.status(201).json(transacoesInseridas[0]);
   } catch (error) {
-    console.error('Erro ao inserir transação:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao salvar transação' });
+    console.error('ERRO CRÍTICO AO SALVAR TRANSAÇÃO:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor ao salvar transação',
+      details: error.message,
+      code: error.code // Útil para debugar erros do Postgres (ex: 42703 para coluna inexistente)
+    });
   }
 });
 

@@ -65,14 +65,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const form = document.getElementById('finance-form');
     if (form) {
-        form.addEventListener('submit', (e) => enviarTransacao(e, usuarioId));
+        form.addEventListener('submit', (e) => enviarTransacao(e));
     }
 
-    periodFilter.addEventListener('change', () => {
-        localStorage.setItem('filtroPeriodo', periodFilter.value);
-        currentPage = 1; // Resetar para a primeira página ao mudar o filtro
-        carregarDashboard();
-    });
+    // Controle de campos de cartão de crédito
+    const isCreditCard = document.getElementById('is-credit-card');
+    const creditCardFields = document.getElementById('credit-card-fields');
+    if (isCreditCard && creditCardFields) {
+        isCreditCard.addEventListener('change', () => {
+            creditCardFields.style.display = isCreditCard.checked ? 'grid' : 'none';
+        });
+    }
+
+    const btnFilter = document.getElementById('btn-filter');
+    if (btnFilter) {
+        btnFilter.addEventListener('click', () => {
+            localStorage.setItem('filtroPeriodo', periodFilter.value);
+            currentPage = 1; // Resetar para a primeira página ao mudar o filtro
+            carregarDashboard();
+        });
+    }
 
     // 6. Configurar Paginação
     const btnPrev = document.getElementById('prev-page');
@@ -180,16 +192,28 @@ function atualizarIconeTema() {
  * Função principal que carrega os dados do dashboard
  */
 async function carregarDashboard() {
+    const periodFilter = document.getElementById('periodo');
+    const summarySection = document.querySelector('.summary');
+    const transactionsSection = document.querySelector('.transactions');
+    const chartSection = document.querySelector('.chart-section');
+    const btnFilter = document.getElementById('btn-filter');
+
     try {
-        const periodFilter = document.getElementById('periodo');
         if (!periodFilter.value) return;
+
+        // Adiciona estado de loading
+        const sections = [summarySection, transactionsSection, chartSection];
+        sections.forEach(s => s?.classList.add('loading'));
+        if (btnFilter) btnFilter.disabled = true;
 
         const [mes, ano] = periodFilter.value.split('-').map(Number);
 
-        // Busca dados filtrados - Ajusta mês 0-indexed para 1-indexed para a API
-        const resumo = await getResumo(mes + 1, ano);
-        const listaData = await getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage);
-        const dadosGrafico = await getDadosGrafico(mes + 1, ano);
+        // Busca dados filtrados em paralelo - Ajusta mês 0-indexed para 1-indexed para a API
+        const [resumo, listaData, dadosGrafico] = await Promise.all([
+            getResumo(mes + 1, ano),
+            getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage),
+            getDadosGrafico(mes + 1, ano)
+        ]);
         
         preencherCards(resumo);
         preencherTabela(listaData.transacoes);
@@ -200,6 +224,12 @@ async function carregarDashboard() {
         
     } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
+        showToast('Erro ao carregar dados do dashboard.', 'error');
+    } finally {
+        // Remove estado de loading
+        const sections = [summarySection, transactionsSection, chartSection];
+        sections.forEach(s => s?.classList.remove('loading'));
+        if (btnFilter) btnFilter.disabled = false;
     }
 }
 
@@ -280,7 +310,7 @@ function renderizarGrafico(dados) {
  * @param {Event} event 
  * @param {string} usuarioId
  */
-async function enviarTransacao(event, usuarioId) {
+async function enviarTransacao(event) {
     event.preventDefault();
     
     const descricao = document.getElementById('descricao').value;
@@ -288,6 +318,9 @@ async function enviarTransacao(event, usuarioId) {
     const data = document.getElementById('data').value;
     const categoria = document.getElementById('categoria').value;
     const tipo = document.getElementById('tipo').value;
+    const isCreditCard = document.getElementById('is-credit-card').checked;
+    const cartao_nome = isCreditCard ? document.getElementById('cartao-nome').value : null;
+    const total_parcelas = isCreditCard ? parseInt(document.getElementById('total-parcelas').value) : 1;
 
     // Validação básica no frontend
     if (valor <= 0) {
@@ -295,13 +328,19 @@ async function enviarTransacao(event, usuarioId) {
         return;
     }
 
+    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioNome = localStorage.getItem('usuarioNome');
+
     const novaTransacao = {
         descricao,
         valor,
         data,
         categoria,
         tipo,
-        usuario_id: usuarioId
+        usuario_id: usuarioId,
+        usuario_nome: usuarioNome,
+        cartao_nome,
+        total_parcelas
     };
 
     try {
@@ -309,6 +348,9 @@ async function enviarTransacao(event, usuarioId) {
         
         // Limpa o formulário após sucesso
         event.target.reset();
+        if (document.getElementById('credit-card-fields')) {
+            document.getElementById('credit-card-fields').style.display = 'none';
+        }
         
         // Atualiza o dashboard e os períodos automaticamente
         await carregarPeriodosEPagina();
@@ -334,6 +376,21 @@ function preencherCards(resumo) {
 }
 
 /**
+ * Retorna o HTML de um avatar circular com a inicial do nome
+ * @param {string} nome 
+ */
+function getAvatarHtml(nome) {
+    if (!nome) return '';
+    const inicial = nome.charAt(0).toUpperCase();
+    let corClass = 'avatar-default';
+    
+    if (nome.toLowerCase().includes('pedro')) corClass = 'avatar-pedro';
+    else if (nome.toLowerCase().includes('josy')) corClass = 'avatar-josy';
+    
+    return `<div class="user-avatar ${corClass}" title="${nome}">${inicial}</div>`;
+}
+
+/**
  * Pega a lista de transações e cria dinamicamente as linhas na tabela
  * @param {Array} transacoes 
  */
@@ -342,7 +399,7 @@ function preencherTabela(transacoes) {
     tbody.innerHTML = ''; // Limpa a tabela antes de popular
 
     if (transacoes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #7f8c8d;">Nenhuma transação encontrada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #7f8c8d;">Nenhuma transação encontrada.</td></tr>';
         return;
     }
 
@@ -358,15 +415,25 @@ function preencherTabela(transacoes) {
         
         const typeClass = `type-${transaction.tipo.toLowerCase()}`;
         const typeLabel = transaction.tipo.charAt(0).toUpperCase() + transaction.tipo.slice(1);
+        
+        const cardInfo = transaction.cartao_nome ? `<br><small style="color: var(--muted-text)">${transaction.cartao_nome}</small>` : '';
 
         // Criação dinâmica da linha (<tr>)
         row.innerHTML = `
-            <td data-label="Descrição">${transaction.descricao}</td>
+            <td data-label="Descrição">
+                <strong>${transaction.descricao}</strong>
+                ${cardInfo}
+            </td>
             <td data-label="Valor" class="${typeClass}">${formatCurrency(transaction.valor)}</td>
             <td data-label="Data">${formatDate(transaction.data)}</td>
             <td data-label="Categoria">${transaction.categoria}</td>
-            <td data-label="Tipo"><span class="${typeClass}">${typeLabel}</span></td>
-            <td>
+            <td data-label="Tipo">
+                <span class="${typeClass}">${typeLabel}</span>
+            </td>
+            <td data-label="Por">
+                ${getAvatarHtml(transaction.usuario_nome)}
+            </td>
+            <td style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                 <button class="btn-delete" onclick="excluirTransacao('${transaction.id}')" title="Excluir">
                     <i data-lucide="trash-2"></i>
                 </button>
@@ -406,7 +473,7 @@ async function excluirTransacao(id) {
     }
 }
 
-// Torna a função global para que o onclick no HTML funcione
+// Torna as funções globais
 window.excluirTransacao = excluirTransacao;
 
 /**
