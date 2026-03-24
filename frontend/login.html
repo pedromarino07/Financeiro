@@ -75,7 +75,7 @@
         });
 
         // Se já estiver logado, vai direto pro index
-        if (localStorage.getItem('usuarioId')) {
+        if (localStorage.getItem('usuarioId') && localStorage.getItem('usuario_nome')) {
             window.location.href = 'index.html';
         }
     </script>

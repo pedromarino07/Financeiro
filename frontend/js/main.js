@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const usuarioId = localStorage.getItem('usuarioId');
     const usuarioNome = localStorage.getItem('usuario_nome');
 
-    if (!usuarioId) {
+    if (!usuarioId || !usuarioNome) {
         window.location.href = 'login.html';
         return;
     }
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLogout = document.getElementById('btn-logout');
 
     if (userDisplay && userName) {
-        userName.textContent = localStorage.getItem('usuario_nome');
+        userName.textContent = usuarioNome;
         userDisplay.style.display = 'flex';
     }
 

@@ -699,7 +699,7 @@ footer {
     .header-top {
         flex-direction: row;
         justify-content: space-between;
-        padding: 0;
+        padding: 0 0.5rem;
     }
 
     .logo span {
@@ -714,33 +714,114 @@ footer {
         display: none; /* Esconde "Olá, Nome" no mobile para poupar espaço */
     }
 
+    main {
+        padding: 0 15px;
+        margin: 1rem auto;
+    }
+
     .summary {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 
     .dashboard-content {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
-    /* Tabela Mobile */
+    /* Tabela Mobile (Transformação em Cards) */
     .table-container {
-        overflow-x: auto;
+        overflow-x: visible;
+        border: none;
+        padding: 0;
     }
 
-    table {
-        min-width: 600px;
+    table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%;
+    }
+
+    thead {
+        display: none; /* Esconde o cabeçalho original */
+    }
+
+    tbody tr {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    td {
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        position: relative;
+        padding-left: 50% !important;
+        text-align: right !important;
+        min-height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    td:last-child {
+        border-bottom: 0;
+        justify-content: center;
+        padding-left: 0 !important;
+        text-align: center !important;
+    }
+
+    td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 12px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: 700;
+        text-align: left;
+        color: var(--muted-text);
+        text-transform: uppercase;
+        font-size: 0.7rem;
+    }
+
+    /* Ajuste específico para o Avatar e Ações no Mobile */
+    td[data-label="Por"] {
+        justify-content: flex-end;
+    }
+
+    .user-avatar {
+        width: 36px; /* Um pouco maior para facilitar o toque */
+        height: 36px;
+    }
+
+    .btn-delete {
+        width: 44px; /* Tamanho mínimo recomendado para toque */
+        height: 44px;
+        background-color: rgba(239, 68, 68, 0.05);
     }
 
     .filter-section {
         justify-content: center;
-        margin-top: 1rem;
+        margin-top: 0.5rem;
         margin-bottom: 1rem;
+    }
+
+    .filter-group {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .filter-group select {
+        flex: 1;
     }
 }
 
 @media (max-width: 480px) {
     main {
-        padding: 0 0.75rem;
+        padding: 0 15px;
     }
 
     .card p {
@@ -753,6 +834,10 @@ footer {
 
     #finance-form {
         grid-template-columns: 1fr;
+    }
+
+    .login-box {
+        padding: 2rem 1.25rem;
     }
 }
 
