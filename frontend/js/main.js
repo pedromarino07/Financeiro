@@ -403,18 +403,12 @@ function preencherCards(resumo) {
 function getAvatarHtml(nome) {
     if (!nome) return '';
     const inicial = nome.charAt(0).toUpperCase();
-    const primeiroNome = nome.split(' ')[0]; // Exibe apenas o primeiro nome
     let corClass = 'avatar-default';
     
     if (nome.toLowerCase().includes('pedro')) corClass = 'avatar-pedro';
     else if (nome.toLowerCase().includes('josy')) corClass = 'avatar-josy';
     
-    return `
-        <div class="user-info-cell">
-            <div class="user-avatar ${corClass}" title="${nome}">${inicial}</div>
-            <span class="user-name-text">${primeiroNome}</span>
-        </div>
-    `;
+    return `<div class="user-avatar ${corClass}" title="${nome}">${inicial}</div>`;
 }
 
 /**
