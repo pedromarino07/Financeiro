@@ -188,6 +188,8 @@ function atualizarIconeTema() {
     lucide.createIcons();
 }
 
+let dashboardCache = new Map(); // Cache simples para evitar requisições repetidas
+
 /**
  * Função principal que carrega os dados do dashboard
  */
@@ -201,20 +203,36 @@ async function carregarDashboard() {
     try {
         if (!periodFilter.value) return;
 
-        // Adiciona estado de loading
+        const [mes, ano] = periodFilter.value.split('-').map(Number);
+        const cacheKey = `${mes}-${ano}-${currentPage}`;
+
+        // Cache Simples: Se os dados já foram carregados para este período e página, usa o cache
+        if (dashboardCache.has(cacheKey)) {
+            console.log('Usando dados do cache para:', cacheKey);
+            const cachedData = dashboardCache.get(cacheKey);
+            preencherCards(cachedData.resumo);
+            preencherTabela(cachedData.listaData.transacoes);
+            renderizarGrafico(cachedData.dadosGrafico);
+            atualizarPaginacao(cachedData.listaData.pagina, cachedData.listaData.totalPaginas);
+            return;
+        }
+
+        // Adiciona estado de loading (UX de Velocidade)
         const sections = [summarySection, transactionsSection, chartSection];
         sections.forEach(s => s?.classList.add('loading'));
         if (btnFilter) btnFilter.disabled = true;
 
-        const [mes, ano] = periodFilter.value.split('-').map(Number);
-
-        // Busca dados filtrados em paralelo - Ajusta mês 0-indexed para 1-indexed para a API
+        // Busca dados filtrados em PARALELISMO (Promise.all)
+        // Ajusta mês 0-indexed para 1-indexed para a API
         const [resumo, listaData, dadosGrafico] = await Promise.all([
             getResumo(mes + 1, ano),
             getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage),
             getDadosGrafico(mes + 1, ano)
         ]);
         
+        // Salva no cache
+        dashboardCache.set(cacheKey, { resumo, listaData, dadosGrafico });
+
         preencherCards(resumo);
         preencherTabela(listaData.transacoes);
         renderizarGrafico(dadosGrafico);
@@ -346,6 +364,9 @@ async function enviarTransacao(event) {
     try {
         await postTransacao(novaTransacao);
         
+        // Limpa o cache para forçar recarregamento de dados novos
+        dashboardCache.clear();
+
         // Limpa o formulário após sucesso
         event.target.reset();
         if (document.getElementById('credit-card-fields')) {
@@ -456,6 +477,10 @@ async function excluirTransacao(id) {
     if (confirm('Tem certeza que deseja excluir esta transação?')) {
         try {
             await deleteTransacao(id);
+            
+            // Limpa o cache para forçar recarregamento de dados novos
+            dashboardCache.clear();
+
             // Se excluir o último item da página, volta uma página (se não for a primeira)
             const tbody = document.getElementById('transactions-body');
             if (tbody.children.length === 1 && currentPage > 1) {

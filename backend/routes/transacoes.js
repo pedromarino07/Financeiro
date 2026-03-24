@@ -74,9 +74,9 @@ router.get('/lista', async (req, res) => {
     const totalRecords = parseInt(countResult.rows[0].count);
     const totalPages = Math.ceil(totalRecords / limit);
 
-    // Query para buscar os dados paginados
+    // Query para buscar os dados paginados - Otimizada para buscar apenas o necessário
     const dataQuery = `
-      SELECT * 
+      SELECT id, descricao, valor, data, categoria, tipo, cartao_nome, parcela_atual, total_parcelas
       FROM transacoes 
       ${whereClause}
       ORDER BY data DESC, criado_em DESC 
