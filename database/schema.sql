@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS transacoes (
     parcela_atual INTEGER,
     total_parcelas INTEGER,
     categoria VARCHAR(50),
+    pago BOOLEAN DEFAULT FALSE,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

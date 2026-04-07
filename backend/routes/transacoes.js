@@ -10,12 +10,18 @@ const router = express.Router();
  */
 router.get('/resumo', async (req, res) => {
   const { mes, ano } = req.query;
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
   try {
-    let whereClause = '';
-    const values = [];
+    let whereClause = 'WHERE usuario_id = $1';
+    const values = [usuario_id];
     
     if (mes && ano) {
-      whereClause = 'WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2';
+      whereClause += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
       values.push(parseInt(mes), parseInt(ano));
     }
 
@@ -23,7 +29,9 @@ router.get('/resumo', async (req, res) => {
       SELECT 
         COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END), 0) as total_entradas,
         COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria NOT IN ('Poupança', 'Investimentos') THEN valor ELSE 0 END), 0) as total_saidas_comuns,
-        COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria IN ('Poupança', 'Investimentos') THEN valor ELSE 0 END), 0) as total_guardado
+        COALESCE(SUM(CASE WHEN tipo = 'saida' AND categoria IN ('Poupança', 'Investimentos') THEN valor ELSE 0 END), 0) as total_guardado,
+        COALESCE(SUM(CASE WHEN tipo = 'saida' AND pago = TRUE THEN valor ELSE 0 END), 0) as total_pago,
+        COALESCE(SUM(CASE WHEN tipo = 'saida' AND pago = FALSE THEN valor ELSE 0 END), 0) as total_pendente
       FROM transacoes
       ${whereClause};
     `;
@@ -32,6 +40,8 @@ router.get('/resumo', async (req, res) => {
     const total_entradas = parseFloat(rows[0].total_entradas);
     const total_saidas_comuns = parseFloat(rows[0].total_saidas_comuns);
     const total_guardado = parseFloat(rows[0].total_guardado);
+    const total_pago = parseFloat(rows[0].total_pago);
+    const total_pendente = parseFloat(rows[0].total_pendente);
     
     // Regra de Negócio: Saldo Livre = Entradas - Saídas Comuns - Total Guardado
     const saldo_livre = total_entradas - total_saidas_comuns - total_guardado;
@@ -40,6 +50,8 @@ router.get('/resumo', async (req, res) => {
       total_entradas: total_entradas,
       total_saidas: total_saidas_comuns,
       total_guardado: total_guardado,
+      total_pago: total_pago,
+      total_pendente: total_pendente,
       saldo: saldo_livre
     });
   } catch (error) {
@@ -55,16 +67,21 @@ router.get('/resumo', async (req, res) => {
  */
 router.get('/lista', async (req, res) => {
   const { mes, ano, pagina = 1, limite = 5 } = req.query;
+  const usuario_id = req.usuario_id;
   const page = parseInt(pagina);
   const limit = parseInt(limite);
   const offset = (page - 1) * limit;
 
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
   try {
-    let whereClause = '';
-    const values = [];
+    let whereClause = 'WHERE usuario_id = $1';
+    const values = [usuario_id];
     
     if (mes && ano) {
-      whereClause = 'WHERE EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2';
+      whereClause += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
       values.push(parseInt(mes), parseInt(ano));
     }
 
@@ -76,7 +93,7 @@ router.get('/lista', async (req, res) => {
 
     // Query para buscar os dados paginados - Otimizada para buscar apenas o necessário
     const dataQuery = `
-      SELECT id, descricao, valor, data, categoria, tipo, cartao_nome, parcela_atual, total_parcelas, usuario_nome
+      SELECT id, descricao, valor, data, categoria, tipo, cartao_nome, parcela_atual, total_parcelas, usuario_nome, pago
       FROM transacoes 
       ${whereClause}
       ORDER BY data DESC, criado_em DESC 
@@ -115,11 +132,15 @@ router.post('/', async (req, res) => {
     data, 
     categoria, 
     tipo, 
-    usuario_id, 
     usuario_nome,
     cartao_nome, 
     total_parcelas 
   } = req.body;
+  const usuario_id = req.usuario_id || req.body.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
 
   console.log('Recebendo nova transação:', req.body);
 
@@ -199,15 +220,22 @@ router.post('/', async (req, res) => {
  * Busca meses e anos únicos que possuem transações
  */
 router.get('/periodos-disponiveis', async (req, res) => {
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
   try {
     const query = `
       SELECT DISTINCT 
         EXTRACT(MONTH FROM data) AS mes, 
         EXTRACT(YEAR FROM data) AS ano 
       FROM transacoes 
+      WHERE usuario_id = $1
       ORDER BY ano DESC, mes DESC;
     `;
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, [usuario_id]);
     
     // Converte os valores para inteiros
     const periodos = rows.map(row => ({
@@ -228,9 +256,15 @@ router.get('/periodos-disponiveis', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
   try {
-    const query = 'DELETE FROM transacoes WHERE id = $1 RETURNING *';
-    const { rows } = await pool.query(query, [id]);
+    const query = 'DELETE FROM transacoes WHERE id = $1 AND usuario_id = $2 RETURNING *';
+    const { rows } = await pool.query(query, [id, usuario_id]);
     
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Transação não encontrada.' });
@@ -240,6 +274,34 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Erro ao excluir transação:', error);
     res.status(500).json({ error: 'Erro interno do servidor ao excluir transação' });
+  }
+});
+
+/**
+ * Rota: PATCH /api/transacoes/:id/pago
+ * Inverte o status de pagamento de uma transação
+ */
+router.patch('/:id/pago', async (req, res) => {
+  const { id } = req.params;
+  const { pago } = req.body;
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
+  try {
+    const query = 'UPDATE transacoes SET pago = $1 WHERE id = $2 AND usuario_id = $3 RETURNING *';
+    const { rows } = await pool.query(query, [pago, id, usuario_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Transação não encontrada.' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Erro ao atualizar status de pagamento:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao atualizar status de pagamento' });
   }
 });
 

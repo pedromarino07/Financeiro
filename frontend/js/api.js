@@ -6,6 +6,20 @@
 const API_BASE_URL = '/api/transacoes';
 
 /**
+ * Retorna os headers padrão, incluindo o ID do usuário para privacidade
+ */
+function getHeaders() {
+    const usuarioId = localStorage.getItem('usuarioId');
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (usuarioId) {
+        headers['X-User-ID'] = usuarioId;
+    }
+    return headers;
+}
+
+/**
  * Busca o resumo financeiro (entradas, saídas e saldo)
  * @param {number} mes 
  * @param {number} ano 
@@ -16,7 +30,9 @@ async function getResumo(mes, ano) {
         if (mes && ano) {
             url += `?mes=${mes}&ano=${ano}`;
         }
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: getHeaders()
+        });
         if (!response.ok) {
             throw new Error('Erro ao buscar resumo financeiro');
         }
@@ -40,7 +56,9 @@ async function getListaTransacoes(mes, ano, pagina = 1, limite = 5) {
         if (mes && ano) {
             url += `&mes=${mes}&ano=${ano}`;
         }
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: getHeaders()
+        });
         if (!response.ok) {
             throw new Error('Erro ao buscar lista de transações');
         }
@@ -59,9 +77,7 @@ async function postTransacao(transacao) {
     try {
         const response = await fetch(API_BASE_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: getHeaders(),
             body: JSON.stringify(transacao)
         });
         if (!response.ok) {
@@ -86,7 +102,9 @@ async function getDadosGrafico(mes, ano) {
         if (mes && ano) {
             url += `?mes=${mes}&ano=${ano}`;
         }
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: getHeaders()
+        });
         if (!response.ok) {
             throw new Error('Erro ao buscar dados do gráfico');
         }
@@ -102,7 +120,9 @@ async function getDadosGrafico(mes, ano) {
  */
 async function getPeriodosDisponiveis() {
     try {
-        const response = await fetch(`${API_BASE_URL}/periodos-disponiveis`);
+        const response = await fetch(`${API_BASE_URL}/periodos-disponiveis`, {
+            headers: getHeaders()
+        });
         if (!response.ok) {
             throw new Error('Erro ao buscar períodos disponíveis');
         }
@@ -114,13 +134,37 @@ async function getPeriodosDisponiveis() {
 }
 
 /**
+ * Envia uma requisição PATCH para alternar o status de pagamento
+ * @param {number} id 
+ * @param {boolean} pago 
+ */
+async function patchPago(id, pago) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/${id}/pago`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ pago })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao atualizar status de pagamento');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Erro na API (PATCH Pago):', error);
+        throw error;
+    }
+}
+
+/**
  * Envia uma requisição DELETE para remover uma transação
  * @param {number} id 
  */
 async function deleteTransacao(id) {
     try {
         const response = await fetch(`${API_BASE_URL}/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getHeaders()
         });
         if (!response.ok) {
             const errorData = await response.json();

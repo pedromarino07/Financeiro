@@ -89,7 +89,7 @@
                     <input type="checkbox" id="is-credit-card">
                     <label for="is-credit-card">Cartão de Crédito?</label>
                 </div>
-                <div id="credit-card-fields" style="display: none; grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+                <div id="credit-card-fields">
                     <div class="form-group">
                         <label for="cartao-nome">Nome do Cartão</label>
                         <input type="text" id="cartao-nome" placeholder="Ex: Nubank">
@@ -112,8 +112,16 @@
                 <p id="total-income">R$ 0,00</p>
             </div>
             <div class="card expense">
-                <h3>Saídas</h3>
+                <h3>Saídas Totais</h3>
                 <p id="total-expense">R$ 0,00</p>
+            </div>
+            <div class="card paid">
+                <h3>Saídas Pagas</h3>
+                <p id="total-paid">R$ 0,00</p>
+            </div>
+            <div class="card pending">
+                <h3>Saídas Pendentes</h3>
+                <p id="total-pending">R$ 0,00</p>
             </div>
             <div class="card investment">
                 <h3>Total Guardado</h3>

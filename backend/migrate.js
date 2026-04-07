@@ -40,6 +40,14 @@ ON CONFLICT (email) DO NOTHING;
 
 -- 4. Associar transações existentes ao primeiro usuário (Pedro) para não quebrar o sistema
 UPDATE transacoes SET usuario_id = (SELECT id FROM usuarios WHERE email = 'pedro@email.com' LIMIT 1) WHERE usuario_id IS NULL;
+
+-- 5. Adicionar coluna pago na tabela transacoes
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transacoes' AND column_name='pago') THEN
+        ALTER TABLE transacoes ADD COLUMN pago BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
 `;
 
 async function runMigration() {

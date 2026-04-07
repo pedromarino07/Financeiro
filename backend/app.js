@@ -19,6 +19,15 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
+// Middleware para extrair o ID do usuário dos headers (simulando sessão/token)
+app.use((req, res, next) => {
+  const usuarioId = req.headers['x-user-id'];
+  if (usuarioId) {
+    req.usuario_id = parseInt(usuarioId);
+  }
+  next();
+});
+
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, '../frontend')));
 

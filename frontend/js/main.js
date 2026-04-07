@@ -392,6 +392,8 @@ function preencherCards(resumo) {
     // Pega os elementos do DOM e atualiza os valores reais
     document.getElementById('total-income').textContent = format(resumo.total_entradas);
     document.getElementById('total-expense').textContent = format(resumo.total_saidas);
+    document.getElementById('total-paid').textContent = format(resumo.total_pago || 0);
+    document.getElementById('total-pending').textContent = format(resumo.total_pendente || 0);
     document.getElementById('total-investment').textContent = format(resumo.total_guardado || 0);
     document.getElementById('total-balance').textContent = format(resumo.saldo);
 }
@@ -427,6 +429,9 @@ function preencherTabela(transacoes) {
 
     transacoes.forEach(transaction => {
         const row = document.createElement('tr');
+        if (transaction.tipo === 'saida' && transaction.pago) {
+            row.classList.add('tr-pago');
+        }
         
         // Formatação de valores e datas
         const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -439,6 +444,19 @@ function preencherTabela(transacoes) {
         const typeLabel = transaction.tipo.charAt(0).toUpperCase() + transaction.tipo.slice(1);
         
         const cardInfo = transaction.cartao_nome ? `<br><small style="color: var(--muted-text)">${transaction.cartao_nome}</small>` : '';
+
+        // Botão de Pago apenas para Saídas
+        let pagoBtn = '';
+        if (transaction.tipo === 'saida') {
+            const isPago = transaction.pago;
+            pagoBtn = `
+                <button class="btn-pago ${isPago ? 'pago' : 'pendente'}" 
+                        onclick="togglePago('${transaction.id}', ${isPago})" 
+                        title="${isPago ? 'Marcar como Pendente' : 'Marcar como Pago'}">
+                    <i data-lucide="${isPago ? 'check-circle-2' : 'circle'}"></i>
+                </button>
+            `;
+        }
 
         // Criação dinâmica da linha (<tr>)
         row.innerHTML = `
@@ -456,6 +474,7 @@ function preencherTabela(transacoes) {
                 ${getAvatarHtml(transaction.usuario_nome)}
             </td>
             <td style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                ${pagoBtn}
                 <button class="btn-delete" onclick="excluirTransacao('${transaction.id}')" title="Excluir">
                     <i data-lucide="trash-2"></i>
                 </button>
@@ -499,8 +518,31 @@ async function excluirTransacao(id) {
     }
 }
 
+/**
+ * Alterna o status de pagamento de uma transação
+ * @param {string} id 
+ * @param {boolean} statusAtual 
+ */
+async function togglePago(id, statusAtual) {
+    try {
+        const novoStatus = !statusAtual;
+        await patchPago(id, novoStatus);
+        
+        // Limpa o cache para forçar recarregamento
+        dashboardCache.clear();
+        
+        // Recarrega o dashboard
+        await carregarDashboard();
+        
+        showToast(`Transação marcada como ${novoStatus ? 'paga' : 'pendente'}.`, 'success');
+    } catch (error) {
+        showToast('Erro ao atualizar status: ' + error.message, 'error');
+    }
+}
+
 // Torna as funções globais
 window.excluirTransacao = excluirTransacao;
+window.togglePago = togglePago;
 
 /**
  * Exibe uma notificação toast na tela

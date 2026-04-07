@@ -10,12 +10,18 @@ const router = express.Router();
  */
 router.get('/despesas', async (req, res) => {
   const { mes, ano } = req.query;
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
   try {
-    let whereClause = "WHERE tipo = 'saida'";
-    const values = [];
+    let whereClause = "WHERE tipo = 'saida' AND usuario_id = $1";
+    const values = [usuario_id];
     
     if (mes && ano) {
-      whereClause += ' AND EXTRACT(MONTH FROM data) = $1 AND EXTRACT(YEAR FROM data) = $2';
+      whereClause += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
       values.push(parseInt(mes), parseInt(ano));
     }
 

@@ -72,9 +72,8 @@ body {
     color: var(--text-color);
     line-height: 1.5;
     transition: background-color 0.3s, color 0.3s;
-    width: 100%;
-    max-width: 100vw;
     overflow-x: hidden;
+    padding: 0 15px; /* Padding lateral de 15px */
 }
 
 header {
@@ -85,7 +84,6 @@ header {
     position: sticky;
     top: 0;
     z-index: 100;
-    width: 100%;
 }
 
 .header-top {
@@ -162,11 +160,12 @@ header {
 }
 
 main {
-    max-width: 1200px;
+    max-width: 100%; /* Garantir que não ultrapasse a largura da tela */
     margin: 1.5rem auto;
     padding: 0 1rem;
     width: 100%;
     box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal */
 }
 
 /* Filtro Mensal */
@@ -226,8 +225,8 @@ main {
 
 #finance-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
     align-items: flex-end;
 }
 
@@ -262,6 +261,14 @@ main {
     border-color: var(--primary-color);
 }
 
+#credit-card-fields {
+    display: none;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
 #btn-add {
     background-color: var(--primary-color);
     color: #fff;
@@ -292,10 +299,28 @@ main {
 /* Resumo de Saldo */
 .summary {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(5, 1fr); /* 5 colunas no desktop */
     gap: 1rem;
     margin-bottom: 2rem;
     width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .summary {
+        grid-template-columns: repeat(3, 1fr); /* 3 colunas no tablet largo */
+    }
+}
+
+@media (max-width: 768px) {
+    .summary {
+        grid-template-columns: repeat(2, 1fr); /* 2 colunas no tablet/celular largo */
+    }
+}
+
+@media (max-width: 480px) {
+    .summary {
+        grid-template-columns: 1fr; /* 1 coluna no celular */
+    }
 }
 
 .card {
@@ -337,6 +362,14 @@ main {
 
 .expense p {
     color: var(--danger-color);
+}
+
+.paid p {
+    color: var(--success-color);
+}
+
+.pending p {
+    color: #f59e0b; /* Amber */
 }
 
 .investment p {
@@ -394,7 +427,6 @@ table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 500px;
 }
 
 th {
@@ -417,10 +449,15 @@ td {
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.8rem;
+    vertical-align: middle;
 }
 
 tbody tr {
     transition: background-color 0.2s;
+}
+
+tbody tr td {
+    height: 60px; /* Altura mínima para garantir alinhamento centralizado */
 }
 
 tbody tr:hover {
@@ -472,6 +509,34 @@ tbody tr:hover {
     color: var(--danger-color);
 }
 
+.btn-pago {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 0.4rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-pago.pendente {
+    color: var(--muted-text);
+}
+
+.btn-pago.pago {
+    color: var(--success-color);
+}
+
+.btn-pago:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.tr-pago {
+    opacity: 0.6;
+}
+
 .btn-delete i {
     width: 14px;
     height: 14px;
@@ -510,6 +575,7 @@ tbody tr:hover {
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
+    height: 38px; /* Alinha com a altura dos inputs */
 }
 
 .checkbox-group input {
@@ -696,6 +762,23 @@ footer {
         padding: 0.75rem 0.5rem;
     }
 
+    #finance-form {
+        grid-template-columns: 1fr; /* Empilha campos no mobile */
+        gap: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 0.5rem;
+    }
+
+    .form-group input, .form-group select {
+        width: 100%;
+    }
+
+    #credit-card-fields {
+        grid-template-columns: 1fr !important;
+    }
+
     .header-top {
         flex-direction: row;
         justify-content: space-between;
@@ -731,53 +814,61 @@ footer {
 
     /* Tabela Mobile (Transformação em Cards) */
     .table-container {
-        overflow-x: visible;
+        overflow-x: hidden;
         border: none;
         padding: 0;
+        width: 100%;
+        max-width: 100%;
     }
 
     table, thead, tbody, th, td, tr {
         display: block;
         width: 100%;
+        max-width: 100%;
     }
 
     thead {
-        display: none; /* Esconde o cabeçalho original */
+        display: none;
     }
 
     tbody tr {
         background-color: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 1rem;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+        padding: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        box-sizing: border-box;
     }
 
     td {
         border: none;
         border-bottom: 1px solid var(--border-color);
         position: relative;
-        padding-left: 50% !important;
+        padding: 0.75rem 0 0.75rem 45% !important;
         text-align: right !important;
         min-height: 45px;
         display: flex;
         align-items: center;
         justify-content: flex-end;
+        width: 100%;
+        box-sizing: border-box;
+        word-break: break-word; /* Evitar quebra de linha feia */
     }
 
     td:last-child {
         border-bottom: 0;
         justify-content: center;
-        padding-left: 0 !important;
+        padding: 1rem 0 0.5rem 0 !important;
         text-align: center !important;
     }
 
     td:before {
         content: attr(data-label);
         position: absolute;
-        left: 12px;
-        width: 45%;
+        left: 0;
+        width: 40%;
         padding-right: 10px;
         white-space: nowrap;
         font-weight: 700;
@@ -793,14 +884,15 @@ footer {
     }
 
     .user-avatar {
-        width: 36px; /* Um pouco maior para facilitar o toque */
+        width: 36px;
         height: 36px;
     }
 
-    .btn-delete {
-        width: 44px; /* Tamanho mínimo recomendado para toque */
+    .btn-delete, .btn-pago {
+        width: 44px;
         height: 44px;
-        background-color: rgba(239, 68, 68, 0.05);
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 0.5rem;
     }
 
     .filter-section {
