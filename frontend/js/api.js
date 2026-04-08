@@ -70,6 +70,30 @@ async function getListaTransacoes(mes, ano, pagina = 1, limite = 5) {
 }
 
 /**
+ * Busca todas as transações de um período (sem paginação)
+ * @param {number} mes 
+ * @param {number} ano 
+ */
+async function getTodasTransacoes(mes, ano) {
+    try {
+        let url = `${API_BASE_URL}/todas`;
+        if (mes && ano) {
+            url += `?mes=${mes}&ano=${ano}`;
+        }
+        const response = await fetch(url, {
+            headers: getHeaders()
+        });
+        if (!response.ok) {
+            throw new Error('Erro ao buscar todas as transações');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Erro na API (Todas):', error);
+        throw error;
+    }
+}
+
+/**
  * Envia uma nova transação para o servidor
  * @param {Object} transacao 
  */

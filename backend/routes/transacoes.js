@@ -121,6 +121,47 @@ router.get('/lista', async (req, res) => {
 });
 
 /**
+ * Rota: GET /api/transacoes/todas
+ * Retorna todas as transações de um mês sem paginação
+ */
+router.get('/todas', async (req, res) => {
+  const { mes, ano } = req.query;
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
+  try {
+    let whereClause = 'WHERE usuario_id = $1';
+    const values = [usuario_id];
+    
+    if (mes && ano) {
+      whereClause += ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
+      values.push(parseInt(mes), parseInt(ano));
+    }
+
+    const query = `
+      SELECT id, descricao, valor, data, categoria, tipo, cartao_nome, parcela_atual, total_parcelas, usuario_nome, pago
+      FROM transacoes 
+      ${whereClause}
+      ORDER BY data DESC, criado_em DESC
+    `;
+    const { rows } = await pool.query(query, values);
+    
+    const transacoes = rows.map(t => ({
+      ...t,
+      valor: parseFloat(t.valor)
+    }));
+    
+    res.json(transacoes);
+  } catch (error) {
+    console.error('Erro ao buscar todas as transações:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar transações' });
+  }
+});
+
+/**
  * Rota: POST /api/transacoes
  * Recebe os dados da nova transação e insere no banco de dados.
  * Suporta parcelamento (loop de inserção) e salva o nome do autor.

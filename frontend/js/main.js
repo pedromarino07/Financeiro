@@ -6,6 +6,7 @@
 let myChart = null; // Armazena a instância do gráfico
 let currentPage = 1; // Página atual da tabela
 const itemsPerPage = 5; // Limite de itens por página
+let transacoesDoMes = []; // Armazena todas as transações do período atual para o modal
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Verificar se o usuário está logado
@@ -210,6 +211,7 @@ async function carregarDashboard() {
         if (dashboardCache.has(cacheKey)) {
             console.log('Usando dados do cache para:', cacheKey);
             const cachedData = dashboardCache.get(cacheKey);
+            transacoesDoMes = cachedData.todasTransacoes; // Recupera do cache
             preencherCards(cachedData.resumo);
             preencherTabela(cachedData.listaData.transacoes);
             renderizarGrafico(cachedData.dadosGrafico);
@@ -224,14 +226,17 @@ async function carregarDashboard() {
 
         // Busca dados filtrados em PARALELISMO (Promise.all)
         // Ajusta mês 0-indexed para 1-indexed para a API
-        const [resumo, listaData, dadosGrafico] = await Promise.all([
+        const [resumo, listaData, dadosGrafico, todasTransacoes] = await Promise.all([
             getResumo(mes + 1, ano),
             getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage),
-            getDadosGrafico(mes + 1, ano)
+            getDadosGrafico(mes + 1, ano),
+            getTodasTransacoes(mes + 1, ano)
         ]);
         
+        transacoesDoMes = todasTransacoes; // Salva na memória
+
         // Salva no cache
-        dashboardCache.set(cacheKey, { resumo, listaData, dadosGrafico });
+        dashboardCache.set(cacheKey, { resumo, listaData, dadosGrafico, todasTransacoes });
 
         preencherCards(resumo);
         preencherTabela(listaData.transacoes);
@@ -291,6 +296,13 @@ function renderizarGrafico(dados) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const categoria = labels[index];
+                    abrirModalDetalhes(categoria);
+                }
+            },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -321,6 +333,55 @@ function renderizarGrafico(dados) {
             cutout: '70%' // Efeito de rosca (donut)
         }
     });
+}
+
+/**
+ * Abre o modal com os detalhes das transações de uma categoria
+ * @param {string} categoria 
+ */
+function abrirModalDetalhes(categoria) {
+    const modal = document.getElementById('category-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalList = document.getElementById('modal-list');
+    const modalTotal = document.getElementById('modal-total');
+
+    // Filtra as transações da categoria (apenas saídas, conforme o gráfico)
+    const filtradas = transacoesDoMes.filter(t => t.categoria === categoria && t.tipo === 'saida');
+    
+    modalTitle.textContent = `Detalhes: ${categoria}`;
+    modalList.innerHTML = '';
+    
+    let total = 0;
+
+    if (filtradas.length === 0) {
+        modalList.innerHTML = '<tr><td colspan="3" style="text-align: center;">Nenhuma transação encontrada.</td></tr>';
+    } else {
+        filtradas.forEach(t => {
+            total += t.valor;
+            const dataFormatada = new Date(t.data + 'T12:00:00').toLocaleDateString('pt-BR');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${dataFormatada}</td>
+                <td>${t.descricao}</td>
+                <td style="color: var(--danger-color); font-weight: 600;">R$ ${t.valor.toFixed(2)}</td>
+            `;
+            modalList.appendChild(row);
+        });
+    }
+
+    modalTotal.textContent = `R$ ${total.toFixed(2)}`;
+    modal.style.display = 'flex';
+
+    // Evento para fechar o modal
+    const closeBtn = document.getElementById('close-modal');
+    closeBtn.onclick = () => modal.style.display = 'none';
+
+    // Fechar ao clicar fora do conteúdo
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
 }
 
 /**
