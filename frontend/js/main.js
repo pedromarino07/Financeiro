@@ -178,6 +178,23 @@ function getNomeMes(mes) {
 }
 
 /**
+ * Formata um valor numérico para moeda brasileira (R$)
+ */
+function formatCurrency(val) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+}
+
+/**
+ * Formata uma string de data para o padrão brasileiro, tratando fuso horário
+ */
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Data Inválida';
+    return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+}
+
+/**
  * Atualiza o ícone do tema (Sol/Lua)
  */
 function atualizarIconeTema() {
@@ -358,18 +375,17 @@ function abrirModalDetalhes(categoria) {
     } else {
         filtradas.forEach(t => {
             total += t.valor;
-            const dataFormatada = new Date(t.data + 'T12:00:00').toLocaleDateString('pt-BR');
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${dataFormatada}</td>
+                <td>${formatDate(t.data)}</td>
                 <td>${t.descricao}</td>
-                <td style="color: var(--danger-color); font-weight: 600;">R$ ${t.valor.toFixed(2)}</td>
+                <td style="color: var(--danger-color); font-weight: 600;">${formatCurrency(t.valor)}</td>
             `;
             modalList.appendChild(row);
         });
     }
 
-    modalTotal.textContent = `R$ ${total.toFixed(2)}`;
+    modalTotal.textContent = formatCurrency(total);
     modal.style.display = 'flex';
 
     // Evento para fechar o modal
@@ -493,13 +509,6 @@ function preencherTabela(transacoes) {
         if (transaction.tipo === 'saida' && transaction.pago) {
             row.classList.add('tr-pago');
         }
-        
-        // Formatação de valores e datas
-        const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-        const formatDate = (dateStr) => {
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-        };
         
         const typeClass = `type-${transaction.tipo.toLowerCase()}`;
         const typeLabel = transaction.tipo.charAt(0).toUpperCase() + transaction.tipo.slice(1);
