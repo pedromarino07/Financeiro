@@ -580,15 +580,30 @@ tbody tr:hover {
 }
 
 .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    height: 38px; /* Alinha com a altura dos inputs */
+    margin-bottom: 1rem;
 }
 
-.checkbox-group input {
-    width: auto;
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    height: 44px; /* Mesma altura dos outros inputs */
+}
+
+.checkbox-container input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkbox-container label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
 }
 
 /* Paginação */
@@ -1097,14 +1112,21 @@ footer {
     transform: translateY(-1px);
 }
 
-.version-tag {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    font-size: 11px;
+footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
     color: var(--muted-text);
+}
+
+footer p {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.footer-version {
+    font-size: 11px;
     opacity: 0.5;
-    pointer-events: none;
-    z-index: 9999;
     font-family: monospace;
 }

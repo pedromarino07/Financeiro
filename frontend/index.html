@@ -86,8 +86,10 @@
                     </select>
                 </div>
                 <div class="form-group checkbox-group">
-                    <input type="checkbox" id="is-credit-card">
-                    <label for="is-credit-card">Cartão de Crédito?</label>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="is-credit-card">
+                        <label for="is-credit-card">Cartão de Crédito?</label>
+                    </div>
                 </div>
                 <div id="credit-card-fields">
                     <div class="form-group">
@@ -179,7 +181,8 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 Pedro Marino Viana Lima</p>
+        <p>&copy; 2026 Pedro Marino. Todos os direitos reservados.</p>
+        <p class="footer-version">Versão 1.0.6</p>
     </footer>
 
     <!-- Modal de Detalhes da Categoria -->
@@ -217,6 +220,5 @@
         // Inicializa os ícones do Lucide
         lucide.createIcons();
     </script>
-    <div class="version-tag">Versão 1.0.2</div>
 </body>
 </html>
