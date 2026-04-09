@@ -1,0 +1,5 @@
+{
+  "name": "Gerenciador de Finanças Pessoais",
+  "description": "Um sistema completo para controle financeiro pessoal com PostgreSQL, Node.js, Vanilla JS e controle de acesso de usuários.",
+  "requestFramePermissions": []
+}
