@@ -34,7 +34,7 @@ async function getResumo(mes, ano) {
             headers: getHeaders()
         });
         if (!response.ok) {
-            throw new Error(`Erro na API (Resumo): Status ${response.status}`);
+            throw new Error('Erro ao buscar resumo financeiro');
         }
         return await response.json();
     } catch (error) {
@@ -60,7 +60,7 @@ async function getListaTransacoes(mes, ano, pagina = 1, limite = 5) {
             headers: getHeaders()
         });
         if (!response.ok) {
-            throw new Error(`Erro na API (Lista): Status ${response.status}`);
+            throw new Error('Erro ao buscar lista de transações');
         }
         return await response.json();
     } catch (error) {
@@ -130,7 +130,7 @@ async function getDadosGrafico(mes, ano) {
             headers: getHeaders()
         });
         if (!response.ok) {
-            throw new Error(`Erro na API (Gráfico): Status ${response.status}`);
+            throw new Error('Erro ao buscar dados do gráfico');
         }
         return await response.json();
     } catch (error) {

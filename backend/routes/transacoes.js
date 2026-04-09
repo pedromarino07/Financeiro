@@ -16,8 +16,6 @@ router.get('/resumo', async (req, res) => {
     return res.status(401).json({ error: 'Usuário não autenticado' });
   }
 
-  console.log(`Usuário [${usuario_id}] solicitando dados do dashboard`);
-
   try {
     let whereClause = 'WHERE usuario_id = $1';
     const values = [usuario_id];
@@ -49,25 +47,16 @@ router.get('/resumo', async (req, res) => {
     const saldo_livre = total_entradas - total_saidas_comuns - total_guardado;
 
     res.json({
-      total_entradas: total_entradas || 0,
-      total_saidas: total_saidas_comuns || 0,
-      total_guardado: total_guardado || 0,
-      total_pago: total_pago || 0,
-      total_pendente: total_pendente || 0,
-      saldo: saldo_livre || 0
+      total_entradas: total_entradas,
+      total_saidas: total_saidas_comuns,
+      total_guardado: total_guardado,
+      total_pago: total_pago,
+      total_pendente: total_pendente,
+      saldo: saldo_livre
     });
   } catch (error) {
-    console.error('Erro na Query (Resumo):', error);
-    // Retorna valores zerados em caso de erro de banco (ex: timeout) para não quebrar o dashboard
-    res.status(200).json({ 
-      total_entradas: 0, 
-      total_saidas: 0, 
-      total_guardado: 0, 
-      total_pago: 0, 
-      total_pendente: 0, 
-      saldo: 0,
-      warning: 'Erro ao carregar dados reais'
-    });
+    console.error('Erro ao buscar resumo das transações:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar resumo' });
   }
 });
 
@@ -126,7 +115,7 @@ router.get('/lista', async (req, res) => {
       totalRegistros: totalRecords
     });
   } catch (error) {
-    console.error('Erro na Query (Lista):', error);
+    console.error('Erro ao buscar lista de transações:', error);
     res.status(500).json({ error: 'Erro interno do servidor ao buscar lista' });
   }
 });

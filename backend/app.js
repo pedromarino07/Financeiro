@@ -19,11 +19,6 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Rota de Health Check (para evitar cold start e monitoramento)
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
-});
-
 // Middleware para extrair o ID do usuário dos headers (simulando sessão/token)
 app.use((req, res, next) => {
   const usuarioId = req.headers['x-user-id'];

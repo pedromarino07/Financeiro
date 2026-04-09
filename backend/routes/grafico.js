@@ -42,9 +42,8 @@ router.get('/despesas', async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('Erro na Query (Gráfico):', error);
-    // Retorna array vazio em caso de erro para não quebrar o gráfico no frontend
-    res.status(200).json([]);
+    console.error('Erro ao buscar dados do gráfico:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar dados do gráfico' });
   }
 });
 

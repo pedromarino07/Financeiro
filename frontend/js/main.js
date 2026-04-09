@@ -94,12 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPrev && btnNext) {
         btnPrev.addEventListener('click', () => {
             if (currentPage > 1) {
-                mudarPagina(currentPage - 1);
+                currentPage--;
+                carregarDashboard();
             }
         });
 
         btnNext.addEventListener('click', () => {
-            mudarPagina(currentPage + 1);
+            currentPage++;
+            carregarDashboard();
         });
     }
 
@@ -261,79 +263,13 @@ async function carregarDashboard() {
         atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
         
     } catch (error) {
-        console.error('Erro detalhado ao carregar dashboard:', error);
-        
-        // Se o erro for do fetch, tenta extrair mais informações
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            console.log('Erro de Rede: Verifique sua conexão ou se o servidor está online.');
-        } else if (error.message) {
-            console.log(`Erro da API: ${error.message}`);
-        }
-
-        // Em caso de erro crítico, preenche com zeros para não deixar a tela "quebrada"
-        preencherCards({
-            total_entradas: 0,
-            total_saidas: 0,
-            total_guardado: 0,
-            total_pago: 0,
-            total_pendente: 0,
-            saldo: 0
-        });
-        
-        showToast('Atenção: Não foi possível carregar os dados reais. Exibindo valores zerados.', 'warning');
+        console.error('Erro ao carregar dashboard:', error);
+        showToast('Erro ao carregar dados do dashboard.', 'error');
     } finally {
         // Remove estado de loading
         const sections = [summarySection, transactionsSection, chartSection];
         sections.forEach(s => s?.classList.remove('loading'));
         if (btnFilter) btnFilter.disabled = false;
-    }
-}
-
-/**
- * Altera apenas a página da tabela de transações, sem recarregar todo o dashboard
- * @param {number} novaPagina 
- */
-async function mudarPagina(novaPagina) {
-    const periodFilter = document.getElementById('periodo');
-    const transactionsSection = document.querySelector('.transactions');
-    
-    if (!periodFilter || !periodFilter.value) return;
-
-    const [mes, ano] = periodFilter.value.split('-').map(Number);
-    const anteriorPagina = currentPage;
-    currentPage = novaPagina;
-
-    // Tenta buscar do cache primeiro (UX instantânea)
-    const cacheKey = `${mes}-${ano}-${currentPage}`;
-    if (dashboardCache.has(cacheKey)) {
-        console.log('Paginação: Usando dados do cache para:', cacheKey);
-        const cachedData = dashboardCache.get(cacheKey);
-        preencherTabela(cachedData.listaData.transacoes);
-        atualizarPaginacao(cachedData.listaData.pagina, cachedData.listaData.totalPaginas);
-        return;
-    }
-
-    // Se não estiver no cache, busca na API
-    transactionsSection?.classList.add('loading');
-
-    try {
-        const listaData = await getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage);
-        
-        preencherTabela(listaData.transacoes);
-        atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
-
-        // Opcional: Atualiza o cache com esses novos dados de página
-        // Para simplificar, não atualizamos o resumo/gráfico aqui, apenas a lista
-    } catch (error) {
-        console.error('Erro ao mudar página (API):', error);
-        
-        // Recuperação Silenciosa: Se falhar, volta para a página anterior ou tenta cache
-        currentPage = anteriorPagina;
-        console.log('Recuperando estado anterior devido a erro na paginação.');
-        
-        // Não exibe toast de erro agressivo, apenas loga e mantém o estado estável
-    } finally {
-        transactionsSection?.classList.remove('loading');
     }
 }
 
