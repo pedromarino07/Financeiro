@@ -9,17 +9,17 @@ if (!process.env.DATABASE_URL) {
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL + (process.env.DATABASE_URL.includes('?') ? '&' : '?') + 'sslmode=require',
   ssl: {
     rejectUnauthorized: false
   },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000, // Aumentado para 5s para lidar com cold start
+  connectionTimeoutMillis: 20000, // Aumentado para 20s para lidar com cold start do Neon
 });
 
 // Função para testar a conexão com retry
-const connectWithRetry = async (retries = 5, delay = 2000) => {
+const connectWithRetry = async (retries = 3, delay = 5000) => {
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
