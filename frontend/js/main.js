@@ -204,8 +204,12 @@ function atualizarIconeTema() {
     lucide.createIcons();
 }
 
+<<<<<<< HEAD
 let dashboardCache = new Map(); // Cache para dados da página: `${mes}-${ano}-${pagina}` -> listaData
 let monthCache = new Map(); // Cache para dados do mês: `${mes}-${ano}` -> { resumo, dadosGrafico, todasTransacoes }
+=======
+let dashboardCache = new Map(); // Cache simples para evitar requisições repetidas
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
 
 /**
  * Função principal que carrega os dados do dashboard
@@ -221,6 +225,7 @@ async function carregarDashboard() {
         if (!periodFilter.value) return;
 
         const [mes, ano] = periodFilter.value.split('-').map(Number);
+<<<<<<< HEAD
         const monthKey = `${mes}-${ano}`;
         const pageKey = `${monthKey}-${currentPage}`;
 
@@ -239,11 +244,33 @@ async function carregarDashboard() {
         }
 
         // Adiciona estado de loading
+=======
+        const cacheKey = `${mes}-${ano}-${currentPage}`;
+
+        // Cache Simples: Se os dados já foram carregados para este período e página, usa o cache
+        if (dashboardCache.has(cacheKey)) {
+            console.log('Usando dados do cache para:', cacheKey);
+            const cachedData = dashboardCache.get(cacheKey);
+            transacoesDoMes = cachedData.todasTransacoes; // Recupera do cache
+            preencherCards(cachedData.resumo);
+            preencherTabela(cachedData.listaData.transacoes);
+            renderizarGrafico(cachedData.dadosGrafico);
+            atualizarPaginacao(cachedData.listaData.pagina, cachedData.listaData.totalPaginas);
+            return;
+        }
+
+        // Adiciona estado de loading (UX de Velocidade)
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
         const sections = [summarySection, transactionsSection, chartSection];
         sections.forEach(s => s?.classList.add('loading'));
         if (btnFilter) btnFilter.disabled = true;
 
+<<<<<<< HEAD
         // Busca dados filtrados em PARALELISMO
+=======
+        // Busca dados filtrados em PARALELISMO (Promise.all)
+        // Ajusta mês 0-indexed para 1-indexed para a API
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
         const [resumo, listaData, dadosGrafico, todasTransacoes] = await Promise.all([
             getResumo(mes + 1, ano),
             getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage),
@@ -251,15 +278,23 @@ async function carregarDashboard() {
             getTodasTransacoes(mes + 1, ano)
         ]);
         
+<<<<<<< HEAD
         transacoesDoMes = todasTransacoes;
 
         // Salva nos caches
         monthCache.set(monthKey, { resumo, dadosGrafico, todasTransacoes });
         dashboardCache.set(pageKey, listaData);
+=======
+        transacoesDoMes = todasTransacoes; // Salva na memória
+
+        // Salva no cache
+        dashboardCache.set(cacheKey, { resumo, listaData, dadosGrafico, todasTransacoes });
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
 
         preencherCards(resumo);
         preencherTabela(listaData.transacoes);
         renderizarGrafico(dadosGrafico);
+<<<<<<< HEAD
         atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
         
     } catch (error) {
@@ -288,6 +323,35 @@ async function carregarDashboard() {
             showToast('Erro ao carregar dados. Verifique sua conexão.', 'error');
         }
     } finally {
+=======
+        
+        // Atualiza controles de paginação
+        atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
+        
+    } catch (error) {
+        console.error('Erro detalhado ao carregar dashboard:', error);
+        
+        // Se o erro for do fetch, tenta extrair mais informações
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.log('Erro de Rede: Verifique sua conexão ou se o servidor está online.');
+        } else if (error.message) {
+            console.log(`Erro da API: ${error.message}`);
+        }
+
+        // Em caso de erro crítico, preenche com zeros para não deixar a tela "quebrada"
+        preencherCards({
+            total_entradas: 0,
+            total_saidas: 0,
+            total_guardado: 0,
+            total_pago: 0,
+            total_pendente: 0,
+            saldo: 0
+        });
+        
+        showToast('Atenção: Não foi possível carregar os dados reais. Exibindo valores zerados.', 'warning');
+    } finally {
+        // Remove estado de loading
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
         const sections = [summarySection, transactionsSection, chartSection];
         sections.forEach(s => s?.classList.remove('loading'));
         if (btnFilter) btnFilter.disabled = false;
@@ -305,6 +369,7 @@ async function mudarPagina(novaPagina) {
     if (!periodFilter || !periodFilter.value) return;
 
     const [mes, ano] = periodFilter.value.split('-').map(Number);
+<<<<<<< HEAD
     const monthKey = `${mes}-${ano}`;
     const pageKey = `${monthKey}-${novaPagina}`;
     const anteriorPagina = currentPage;
@@ -320,11 +385,28 @@ async function mudarPagina(novaPagina) {
         return;
     }
 
+=======
+    const anteriorPagina = currentPage;
+    currentPage = novaPagina;
+
+    // Tenta buscar do cache primeiro (UX instantânea)
+    const cacheKey = `${mes}-${ano}-${currentPage}`;
+    if (dashboardCache.has(cacheKey)) {
+        console.log('Paginação: Usando dados do cache para:', cacheKey);
+        const cachedData = dashboardCache.get(cacheKey);
+        preencherTabela(cachedData.listaData.transacoes);
+        atualizarPaginacao(cachedData.listaData.pagina, cachedData.listaData.totalPaginas);
+        return;
+    }
+
+    // Se não estiver no cache, busca na API
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
     transactionsSection?.classList.add('loading');
 
     try {
         const listaData = await getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage);
         
+<<<<<<< HEAD
         // Salva no cache de páginas
         dashboardCache.set(pageKey, listaData);
         
@@ -334,6 +416,21 @@ async function mudarPagina(novaPagina) {
         console.error('Erro ao mudar página:', error);
         currentPage = anteriorPagina;
         showToast('Não foi possível carregar a próxima página.', 'warning');
+=======
+        preencherTabela(listaData.transacoes);
+        atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
+
+        // Opcional: Atualiza o cache com esses novos dados de página
+        // Para simplificar, não atualizamos o resumo/gráfico aqui, apenas a lista
+    } catch (error) {
+        console.error('Erro ao mudar página (API):', error);
+        
+        // Recuperação Silenciosa: Se falhar, volta para a página anterior ou tenta cache
+        currentPage = anteriorPagina;
+        console.log('Recuperando estado anterior devido a erro na paginação.');
+        
+        // Não exibe toast de erro agressivo, apenas loga e mantém o estado estável
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
     } finally {
         transactionsSection?.classList.remove('loading');
     }
@@ -485,7 +582,11 @@ async function enviarTransacao(event) {
 
     // Validação básica no frontend
     if (valor <= 0) {
+<<<<<<< HEAD
         showToast('O valor deve ser maior que zero.', 'error');
+=======
+        alert('O valor deve ser maior que zero.');
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
         return;
     }
 
@@ -507,9 +608,14 @@ async function enviarTransacao(event) {
     try {
         await postTransacao(novaTransacao);
         
+<<<<<<< HEAD
         // Limpa os caches para forçar recarregamento de dados novos
         dashboardCache.clear();
         monthCache.clear();
+=======
+        // Limpa o cache para forçar recarregamento de dados novos
+        dashboardCache.clear();
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
 
         // Limpa o formulário após sucesso
         event.target.reset();
@@ -631,6 +737,7 @@ function preencherTabela(transacoes) {
  */
 async function excluirTransacao(id) {
     console.log('Tentando excluir ID:', id);
+<<<<<<< HEAD
     try {
         await deleteTransacao(id);
         
@@ -651,6 +758,29 @@ async function excluirTransacao(id) {
         showToast('Transação excluída com sucesso!', 'success');
     } catch (error) {
         showToast('Erro ao excluir: ' + error.message, 'error');
+=======
+    if (confirm('Tem certeza que deseja excluir esta transação?')) {
+        try {
+            await deleteTransacao(id);
+            
+            // Limpa o cache para forçar recarregamento de dados novos
+            dashboardCache.clear();
+
+            // Se excluir o último item da página, volta uma página (se não for a primeira)
+            const tbody = document.getElementById('transactions-body');
+            if (tbody.children.length === 1 && currentPage > 1) {
+                currentPage--;
+            }
+            // Recarrega o dashboard para atualizar cards, gráfico e tabela
+            await carregarDashboard();
+            // Também recarrega os períodos caso a exclusão tenha removido o último registro de um mês
+            await carregarPeriodosEPagina();
+            
+            showToast('Transação excluída com sucesso!', 'success');
+        } catch (error) {
+            showToast('Erro ao excluir: ' + error.message, 'error');
+        }
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
     }
 }
 
@@ -664,9 +794,14 @@ async function togglePago(id, statusAtual) {
         const novoStatus = !statusAtual;
         await patchPago(id, novoStatus);
         
+<<<<<<< HEAD
         // Limpa os caches para forçar recarregamento
         dashboardCache.clear();
         monthCache.clear();
+=======
+        // Limpa o cache para forçar recarregamento
+        dashboardCache.clear();
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
         
         // Recarrega o dashboard
         await carregarDashboard();

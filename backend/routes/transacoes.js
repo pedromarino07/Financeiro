@@ -57,6 +57,7 @@ router.get('/resumo', async (req, res) => {
       saldo: saldo_livre || 0
     });
   } catch (error) {
+<<<<<<< HEAD
     console.error('ERRO CRÍTICO NA QUERY (Resumo):', {
       message: error.message,
       stack: error.stack,
@@ -72,6 +73,18 @@ router.get('/resumo', async (req, res) => {
     res.status(500).json({ 
       error: 'Erro interno ao processar resumo financeiro',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
+=======
+    console.error('Erro na Query (Resumo):', error);
+    // Retorna valores zerados em caso de erro de banco (ex: timeout) para não quebrar o dashboard
+    res.status(200).json({ 
+      total_entradas: 0, 
+      total_saidas: 0, 
+      total_guardado: 0, 
+      total_pago: 0, 
+      total_pendente: 0, 
+      saldo: 0,
+      warning: 'Erro ao carregar dados reais'
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
     });
   }
 });
@@ -131,6 +144,7 @@ router.get('/lista', async (req, res) => {
       totalRegistros: totalRecords
     });
   } catch (error) {
+<<<<<<< HEAD
     console.error('ERRO CRÍTICO NA QUERY (Lista):', {
       message: error.message,
       stack: error.stack,
@@ -138,6 +152,10 @@ router.get('/lista', async (req, res) => {
       params: { mes, ano, pagina, limite }
     });
     res.status(500).json({ error: 'Erro interno do servidor ao buscar lista de transações' });
+=======
+    console.error('Erro na Query (Lista):', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar lista' });
+>>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
   }
 });
 
