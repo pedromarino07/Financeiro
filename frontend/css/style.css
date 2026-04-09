@@ -245,15 +245,24 @@ main {
 }
 
 .form-group input, .form-group select {
-    padding: 0.5rem 0.6rem;
+    padding: 0.6rem 0.75rem;
     background-color: var(--input-bg);
     color: var(--text-color);
     border: 1px solid var(--input-border);
     border-radius: 0.5rem;
-    font-size: 0.8rem;
+    font-size: 16px; /* Mínimo 16px para evitar zoom automático no iOS */
     transition: all 0.2s;
     width: 100%;
     box-sizing: border-box;
+    height: 44px; /* Altura padronizada para todos os campos */
+    display: block;
+}
+
+/* Reset específico para input de data para evitar inconsistências de altura/estilo */
+.form-group input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 44px;
 }
 
 .form-group input:focus, .form-group select:focus {
@@ -276,14 +285,14 @@ main {
     border: none;
     border-radius: 0.5rem;
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    height: 34px;
+    height: 44px; /* Mesma altura dos inputs */
 }
 
 #btn-add:hover {
