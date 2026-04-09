@@ -224,10 +224,10 @@ main {
 }
 
 #finance-form {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
     align-items: flex-end;
-    gap: 15px;
 }
 
 .form-group {
@@ -579,26 +579,16 @@ tbody tr:hover {
     background-color: #64748b; /* Cinza */
 }
 
-.card-checkbox-group {
+.checkbox-group {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
     cursor: pointer;
-    height: 44px;
+    height: 38px; /* Alinha com a altura dos inputs */
 }
 
-.card-checkbox-group input {
+.checkbox-group input {
     width: auto;
-    height: 18px;
-    cursor: pointer;
-}
-
-.card-checkbox-group label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-color);
-    cursor: pointer;
 }
 
 /* Paginação */
@@ -864,23 +854,8 @@ footer {
     }
 
     #finance-form {
-        flex-direction: column;
+        grid-template-columns: 1fr; /* Empilha campos no mobile */
         gap: 1rem;
-    }
-
-    .card-checkbox-group {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 8px;
-        width: 100%;
-        height: auto;
-        margin-top: 5px;
-    }
-
-    .card-checkbox-group label {
-        white-space: nowrap;
-        font-size: 0.85rem;
     }
 
     .form-group {
@@ -1122,21 +1097,14 @@ footer {
     transform: translateY(-1px);
 }
 
-footer {
-    text-align: center;
-    padding: 2rem 1rem;
-    margin-top: 2rem;
-    border-top: 1px solid var(--border-color);
+.version-tag {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    font-size: 11px;
     color: var(--muted-text);
-}
-
-footer p {
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-}
-
-.footer-version {
-    font-size: 9px;
     opacity: 0.5;
+    pointer-events: none;
+    z-index: 9999;
     font-family: monospace;
 }
