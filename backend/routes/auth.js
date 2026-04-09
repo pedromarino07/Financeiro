@@ -25,11 +25,7 @@ router.post('/login', async (req, res) => {
     const usuario = rows[0];
     res.json(usuario);
   } catch (error) {
-    console.error('ERRO CRÍTICO NO LOGIN:', {
-      message: error.message,
-      stack: error.stack,
-      email
-    });
+    console.error('Erro ao realizar login:', error);
     res.status(500).json({ error: 'Erro interno do servidor ao realizar login' });
   }
 });

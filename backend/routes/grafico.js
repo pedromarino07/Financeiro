@@ -42,13 +42,9 @@ router.get('/despesas', async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('ERRO CRÍTICO NA QUERY (Gráfico):', {
-      message: error.message,
-      stack: error.stack,
-      usuario_id,
-      params: { mes, ano }
-    });
-    res.status(500).json({ error: 'Erro ao processar dados do gráfico' });
+    console.error('Erro na Query (Gráfico):', error);
+    // Retorna array vazio em caso de erro para não quebrar o gráfico no frontend
+    res.status(200).json([]);
   }
 });
 

@@ -204,8 +204,7 @@ function atualizarIconeTema() {
     lucide.createIcons();
 }
 
-let dashboardCache = new Map(); // Cache para dados da página: `${mes}-${ano}-${pagina}` -> listaData
-let monthCache = new Map(); // Cache para dados do mês: `${mes}-${ano}` -> { resumo, dadosGrafico, todasTransacoes }
+let dashboardCache = new Map(); // Cache simples para evitar requisições repetidas
 
 /**
  * Função principal que carrega os dados do dashboard
@@ -221,29 +220,27 @@ async function carregarDashboard() {
         if (!periodFilter.value) return;
 
         const [mes, ano] = periodFilter.value.split('-').map(Number);
-        const monthKey = `${mes}-${ano}`;
-        const pageKey = `${monthKey}-${currentPage}`;
+        const cacheKey = `${mes}-${ano}-${currentPage}`;
 
-        // Tenta usar cache total se disponível
-        if (monthCache.has(monthKey) && dashboardCache.has(pageKey)) {
-            console.log('Usando dados do cache total para:', pageKey);
-            const mData = monthCache.get(monthKey);
-            const pData = dashboardCache.get(pageKey);
-            
-            transacoesDoMes = mData.todasTransacoes;
-            preencherCards(mData.resumo);
-            preencherTabela(pData.transacoes);
-            renderizarGrafico(mData.dadosGrafico);
-            atualizarPaginacao(pData.pagina, pData.totalPaginas);
+        // Cache Simples: Se os dados já foram carregados para este período e página, usa o cache
+        if (dashboardCache.has(cacheKey)) {
+            console.log('Usando dados do cache para:', cacheKey);
+            const cachedData = dashboardCache.get(cacheKey);
+            transacoesDoMes = cachedData.todasTransacoes; // Recupera do cache
+            preencherCards(cachedData.resumo);
+            preencherTabela(cachedData.listaData.transacoes);
+            renderizarGrafico(cachedData.dadosGrafico);
+            atualizarPaginacao(cachedData.listaData.pagina, cachedData.listaData.totalPaginas);
             return;
         }
 
-        // Adiciona estado de loading
+        // Adiciona estado de loading (UX de Velocidade)
         const sections = [summarySection, transactionsSection, chartSection];
         sections.forEach(s => s?.classList.add('loading'));
         if (btnFilter) btnFilter.disabled = true;
 
-        // Busca dados filtrados em PARALELISMO
+        // Busca dados filtrados em PARALELISMO (Promise.all)
+        // Ajusta mês 0-indexed para 1-indexed para a API
         const [resumo, listaData, dadosGrafico, todasTransacoes] = await Promise.all([
             getResumo(mes + 1, ano),
             getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage),
@@ -251,43 +248,41 @@ async function carregarDashboard() {
             getTodasTransacoes(mes + 1, ano)
         ]);
         
-        transacoesDoMes = todasTransacoes;
+        transacoesDoMes = todasTransacoes; // Salva na memória
 
-        // Salva nos caches
-        monthCache.set(monthKey, { resumo, dadosGrafico, todasTransacoes });
-        dashboardCache.set(pageKey, listaData);
+        // Salva no cache
+        dashboardCache.set(cacheKey, { resumo, listaData, dadosGrafico, todasTransacoes });
 
         preencherCards(resumo);
         preencherTabela(listaData.transacoes);
         renderizarGrafico(dadosGrafico);
+        
+        // Atualiza controles de paginação
         atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
         
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
+        console.error('Erro detalhado ao carregar dashboard:', error);
         
-        const [mes, ano] = periodFilter.value.split('-').map(Number);
-        const monthKey = `${mes}-${ano}`;
-
-        // Recuperação Silenciosa: Se falhar mas tivermos dados no cache do mês, usa eles
-        if (monthCache.has(monthKey)) {
-            console.log('Erro na API, mas usando dados do cache do mês.');
-            const mData = monthCache.get(monthKey);
-            preencherCards(mData.resumo);
-            renderizarGrafico(mData.dadosGrafico);
-            showToast('Aviso: Usando dados locais (offline).', 'warning');
-        } else {
-            // Se não tiver nada, preenche com zeros
-            preencherCards({
-                total_entradas: 0,
-                total_saidas: 0,
-                total_guardado: 0,
-                total_pago: 0,
-                total_pendente: 0,
-                saldo: 0
-            });
-            showToast('Erro ao carregar dados. Verifique sua conexão.', 'error');
+        // Se o erro for do fetch, tenta extrair mais informações
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.log('Erro de Rede: Verifique sua conexão ou se o servidor está online.');
+        } else if (error.message) {
+            console.log(`Erro da API: ${error.message}`);
         }
+
+        // Em caso de erro crítico, preenche com zeros para não deixar a tela "quebrada"
+        preencherCards({
+            total_entradas: 0,
+            total_saidas: 0,
+            total_guardado: 0,
+            total_pago: 0,
+            total_pendente: 0,
+            saldo: 0
+        });
+        
+        showToast('Atenção: Não foi possível carregar os dados reais. Exibindo valores zerados.', 'warning');
     } finally {
+        // Remove estado de loading
         const sections = [summarySection, transactionsSection, chartSection];
         sections.forEach(s => s?.classList.remove('loading'));
         if (btnFilter) btnFilter.disabled = false;
@@ -305,35 +300,38 @@ async function mudarPagina(novaPagina) {
     if (!periodFilter || !periodFilter.value) return;
 
     const [mes, ano] = periodFilter.value.split('-').map(Number);
-    const monthKey = `${mes}-${ano}`;
-    const pageKey = `${monthKey}-${novaPagina}`;
     const anteriorPagina = currentPage;
-    
     currentPage = novaPagina;
 
-    // Tenta buscar do cache primeiro
-    if (dashboardCache.has(pageKey)) {
-        console.log('Paginação: Usando dados do cache para:', pageKey);
-        const pData = dashboardCache.get(pageKey);
-        preencherTabela(pData.transacoes);
-        atualizarPaginacao(pData.pagina, pData.totalPaginas);
+    // Tenta buscar do cache primeiro (UX instantânea)
+    const cacheKey = `${mes}-${ano}-${currentPage}`;
+    if (dashboardCache.has(cacheKey)) {
+        console.log('Paginação: Usando dados do cache para:', cacheKey);
+        const cachedData = dashboardCache.get(cacheKey);
+        preencherTabela(cachedData.listaData.transacoes);
+        atualizarPaginacao(cachedData.listaData.pagina, cachedData.listaData.totalPaginas);
         return;
     }
 
+    // Se não estiver no cache, busca na API
     transactionsSection?.classList.add('loading');
 
     try {
         const listaData = await getListaTransacoes(mes + 1, ano, currentPage, itemsPerPage);
         
-        // Salva no cache de páginas
-        dashboardCache.set(pageKey, listaData);
-        
         preencherTabela(listaData.transacoes);
         atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
+
+        // Opcional: Atualiza o cache com esses novos dados de página
+        // Para simplificar, não atualizamos o resumo/gráfico aqui, apenas a lista
     } catch (error) {
-        console.error('Erro ao mudar página:', error);
+        console.error('Erro ao mudar página (API):', error);
+        
+        // Recuperação Silenciosa: Se falhar, volta para a página anterior ou tenta cache
         currentPage = anteriorPagina;
-        showToast('Não foi possível carregar a próxima página.', 'warning');
+        console.log('Recuperando estado anterior devido a erro na paginação.');
+        
+        // Não exibe toast de erro agressivo, apenas loga e mantém o estado estável
     } finally {
         transactionsSection?.classList.remove('loading');
     }
@@ -485,7 +483,7 @@ async function enviarTransacao(event) {
 
     // Validação básica no frontend
     if (valor <= 0) {
-        showToast('O valor deve ser maior que zero.', 'error');
+        alert('O valor deve ser maior que zero.');
         return;
     }
 
@@ -507,9 +505,8 @@ async function enviarTransacao(event) {
     try {
         await postTransacao(novaTransacao);
         
-        // Limpa os caches para forçar recarregamento de dados novos
+        // Limpa o cache para forçar recarregamento de dados novos
         dashboardCache.clear();
-        monthCache.clear();
 
         // Limpa o formulário após sucesso
         event.target.reset();
@@ -631,26 +628,27 @@ function preencherTabela(transacoes) {
  */
 async function excluirTransacao(id) {
     console.log('Tentando excluir ID:', id);
-    try {
-        await deleteTransacao(id);
-        
-        // Limpa os caches para forçar recarregamento de dados novos
-        dashboardCache.clear();
-        monthCache.clear();
+    if (confirm('Tem certeza que deseja excluir esta transação?')) {
+        try {
+            await deleteTransacao(id);
+            
+            // Limpa o cache para forçar recarregamento de dados novos
+            dashboardCache.clear();
 
-        // Se excluir o último item da página, volta uma página (se não for a primeira)
-        const tbody = document.getElementById('transactions-body');
-        if (tbody.children.length === 1 && currentPage > 1) {
-            currentPage--;
+            // Se excluir o último item da página, volta uma página (se não for a primeira)
+            const tbody = document.getElementById('transactions-body');
+            if (tbody.children.length === 1 && currentPage > 1) {
+                currentPage--;
+            }
+            // Recarrega o dashboard para atualizar cards, gráfico e tabela
+            await carregarDashboard();
+            // Também recarrega os períodos caso a exclusão tenha removido o último registro de um mês
+            await carregarPeriodosEPagina();
+            
+            showToast('Transação excluída com sucesso!', 'success');
+        } catch (error) {
+            showToast('Erro ao excluir: ' + error.message, 'error');
         }
-        // Recarrega o dashboard para atualizar cards, gráfico e tabela
-        await carregarDashboard();
-        // Também recarrega os períodos caso a exclusão tenha removido o último registro de um mês
-        await carregarPeriodosEPagina();
-        
-        showToast('Transação excluída com sucesso!', 'success');
-    } catch (error) {
-        showToast('Erro ao excluir: ' + error.message, 'error');
     }
 }
 
@@ -664,9 +662,8 @@ async function togglePago(id, statusAtual) {
         const novoStatus = !statusAtual;
         await patchPago(id, novoStatus);
         
-        // Limpa os caches para forçar recarregamento
+        // Limpa o cache para forçar recarregamento
         dashboardCache.clear();
-        monthCache.clear();
         
         // Recarrega o dashboard
         await carregarDashboard();

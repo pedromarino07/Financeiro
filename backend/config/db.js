@@ -8,20 +8,14 @@ if (!process.env.DATABASE_URL) {
   console.error('ERRO: A variável de ambiente DATABASE_URL não foi definida!');
 }
 
-let connectionString = process.env.DATABASE_URL;
-
-if (connectionString && !connectionString.includes('sslmode=')) {
-  connectionString += (connectionString.includes('?') ? '&' : '?') + 'sslmode=require';
-}
-
 const pool = new Pool({
-  connectionString: connectionString,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   },
-  max: 10, // Reduzido para ser mais amigável com Neon Serverless/PGBouncer
+  max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Aumentado para 10s para lidar com cold start do Neon
+  connectionTimeoutMillis: 5000, // Aumentado para 5s para lidar com cold start
 });
 
 // Função para testar a conexão com retry
