@@ -28,13 +28,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Servir arquivos estáticos do frontend
-app.use(express.static(path.join(__dirname, '../frontend')));
-
 // Rotas da API
 app.use('/api/auth', authRoutes);
 app.use('/api/transacoes', transacoesRoutes);
 app.use('/api/grafico', graficoRoutes);
+
+// Servir arquivos estáticos do frontend
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Rota para servir o index.html em qualquer outra rota (SPA fallback)
 app.get('*', (req, res) => {

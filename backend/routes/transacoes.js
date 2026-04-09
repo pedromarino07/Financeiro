@@ -4,6 +4,27 @@ import pool from '../config/db.js';
 const router = express.Router();
 
 /**
+ * Rota: GET /api/transacoes
+ * Retorna todas as transações do usuário logado
+ */
+router.get('/', async (req, res) => {
+  const usuario_id = req.usuario_id;
+
+  if (!usuario_id) {
+    return res.status(401).json({ error: 'Usuário não autenticado' });
+  }
+
+  try {
+    const query = 'SELECT * FROM transacoes WHERE usuario_id = $1 ORDER BY data DESC, criado_em DESC';
+    const { rows } = await pool.query(query, [usuario_id]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Erro ao buscar transações:', error);
+    res.status(500).json({ error: 'Erro no banco' });
+  }
+});
+
+/**
  * Rota: GET /api/transacoes/resumo
  * Calcula o total de entradas, saídas comuns, total guardado e o saldo livre
  * Aceita parâmetros opcionais de mês e ano
@@ -56,7 +77,7 @@ router.get('/resumo', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar resumo das transações:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao buscar resumo' });
+    res.status(500).json({ error: 'Erro no banco' });
   }
 });
 
@@ -116,7 +137,7 @@ router.get('/lista', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar lista de transações:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao buscar lista' });
+    res.status(500).json({ error: 'Erro no banco' });
   }
 });
 
@@ -157,7 +178,7 @@ router.get('/todas', async (req, res) => {
     res.json(transacoes);
   } catch (error) {
     console.error('Erro ao buscar todas as transações:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao buscar transações' });
+    res.status(500).json({ error: 'Erro no banco' });
   }
 });
 
@@ -249,9 +270,9 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('ERRO CRÍTICO AO SALVAR TRANSAÇÃO:', error);
     res.status(500).json({ 
-      error: 'Erro interno do servidor ao salvar transação',
+      error: 'Erro no banco',
       details: error.message,
-      code: error.code // Útil para debugar erros do Postgres (ex: 42703 para coluna inexistente)
+      code: error.code
     });
   }
 });
@@ -287,7 +308,7 @@ router.get('/periodos-disponiveis', async (req, res) => {
     res.json(periodos);
   } catch (error) {
     console.error('Erro ao buscar períodos disponíveis:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao buscar períodos' });
+    res.status(500).json({ error: 'Erro no banco' });
   }
 });
 
@@ -314,7 +335,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Transação excluída com sucesso.', transacao: rows[0] });
   } catch (error) {
     console.error('Erro ao excluir transação:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao excluir transação' });
+    res.status(500).json({ error: 'Erro no banco' });
   }
 });
 
@@ -342,7 +363,7 @@ router.patch('/:id/pago', async (req, res) => {
     res.json(rows[0]);
   } catch (error) {
     console.error('Erro ao atualizar status de pagamento:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao atualizar status de pagamento' });
+    res.status(500).json({ error: 'Erro no banco' });
   }
 });
 
