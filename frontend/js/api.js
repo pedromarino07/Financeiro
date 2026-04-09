@@ -148,12 +148,14 @@ async function getPeriodosDisponiveis() {
             headers: getHeaders()
         });
         if (!response.ok) {
-            throw new Error('Erro ao buscar períodos disponíveis');
+            console.warn(`Aviso: API de períodos retornou status ${response.status}. Retornando lista vazia.`);
+            return [];
         }
         return await response.json();
     } catch (error) {
         console.error('Erro na API (Períodos):', error);
-        throw error;
+        // Retorna array vazio por padrão para não quebrar o carregamento inicial
+        return [];
     }
 }
 
