@@ -254,6 +254,18 @@ main {
     transition: all 0.2s;
     width: 100%;
     box-sizing: border-box;
+    min-height: 44px; /* Ajuste de Toque */
+    margin: 0; /* Reset de margens */
+    appearance: none; /* Reset de estilo mobile */
+    -webkit-appearance: none;
+}
+
+.form-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
 }
 
 .form-group input:focus, .form-group select:focus {
@@ -283,7 +295,7 @@ main {
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    height: 34px;
+    min-height: 44px; /* Ajuste de Toque */
 }
 
 #btn-add:hover {
@@ -572,14 +584,27 @@ tbody tr:hover {
 
 .checkbox-group {
     display: flex;
+    flex-direction: row !important; /* Forçar alinhamento em linha */
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center; /* Centraliza checkbox e texto */
+    gap: 0.75rem;
     cursor: pointer;
-    height: 38px; /* Alinha com a altura dos inputs */
+    min-height: 44px; /* Ajuste de Toque */
+    width: 100%;
+    grid-column: 1 / -1; /* Ocupa a largura toda no grid */
 }
 
-.checkbox-group input {
-    width: auto;
+.checkbox-group input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.checkbox-group label {
+    margin: 0 !important;
+    cursor: pointer;
+    text-transform: uppercase;
 }
 
 /* Paginação */
