@@ -55,7 +55,7 @@ router.get('/resumo', async (req, res) => {
       saldo: saldo_livre
     });
   } catch (error) {
-    console.error('Erro ao buscar resumo das transações:', error);
+    console.error('Erro na Query (Resumo):', error);
     res.status(500).json({ error: 'Erro interno do servidor ao buscar resumo' });
   }
 });
@@ -115,7 +115,7 @@ router.get('/lista', async (req, res) => {
       totalRegistros: totalRecords
     });
   } catch (error) {
-    console.error('Erro ao buscar lista de transações:', error);
+    console.error('Erro na Query (Lista):', error);
     res.status(500).json({ error: 'Erro interno do servidor ao buscar lista' });
   }
 });
