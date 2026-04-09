@@ -16,6 +16,8 @@ router.get('/resumo', async (req, res) => {
     return res.status(401).json({ error: 'Usuário não autenticado' });
   }
 
+  console.log(`Usuário [${usuario_id}] solicitando dados do dashboard`);
+
   try {
     let whereClause = 'WHERE usuario_id = $1';
     const values = [usuario_id];

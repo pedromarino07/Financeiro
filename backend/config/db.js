@@ -13,14 +13,28 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false
   },
-  max: 20, // Limite máximo de conexões no pool
-  idleTimeoutMillis: 30000, // Tempo que uma conexão pode ficar ociosa antes de ser fechada
-  connectionTimeoutMillis: 2000, // Tempo máximo para tentar uma conexão antes de dar timeout
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000, // Aumentado para 5s para lidar com cold start
 });
 
-pool.on('connect', () => {
-  console.log('Conectado ao banco de dados PostgreSQL');
-});
+// Função para testar a conexão com retry
+const connectWithRetry = async (retries = 5, delay = 2000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      console.log('Conectado ao banco de dados PostgreSQL com sucesso!');
+      client.release();
+      return;
+    } catch (err) {
+      console.error(`Tentativa ${i + 1} de conexão falhou. Tentando novamente em ${delay}ms...`);
+      if (i === retries - 1) throw err;
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+};
+
+connectWithRetry().catch(err => console.error('Erro fatal ao conectar no banco após retries:', err));
 
 pool.on('error', (err) => {
   console.error('ERRO CRÍTICO NO BANCO:', err);

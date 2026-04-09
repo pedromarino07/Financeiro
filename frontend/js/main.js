@@ -263,8 +263,16 @@ async function carregarDashboard() {
         atualizarPaginacao(listaData.pagina, listaData.totalPaginas);
         
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
-        showToast('Erro ao carregar dados do dashboard.', 'error');
+        console.error('Erro detalhado ao carregar dashboard:', error);
+        
+        // Se o erro for do fetch, tenta extrair mais informações
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.log('Erro de Rede: Verifique sua conexão ou se o servidor está online.');
+        } else if (error.message) {
+            console.log(`Erro da API: ${error.message}`);
+        }
+
+        showToast('Erro ao carregar dados do dashboard. Verifique o console para detalhes.', 'error');
     } finally {
         // Remove estado de loading
         const sections = [summarySection, transactionsSection, chartSection];
