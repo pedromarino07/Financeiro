@@ -10,7 +10,6 @@ if (!process.env.DATABASE_URL) {
 
 let connectionString = process.env.DATABASE_URL;
 
-// Garante que o SSL seja exigido pelo Neon
 if (connectionString && !connectionString.includes('sslmode=')) {
   connectionString += (connectionString.includes('?') ? '&' : '?') + 'sslmode=require';
 }
@@ -20,9 +19,9 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false
   },
-  max: 10, // Ideal para Neon Serverless
+  max: 10, // Reduzido para ser mais amigável com Neon Serverless/PGBouncer
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // 10s para dar tempo ao Neon "acordar"
+  connectionTimeoutMillis: 10000, // Aumentado para 10s para lidar com cold start do Neon
 });
 
 // Função para testar a conexão com retry
@@ -45,6 +44,7 @@ connectWithRetry().catch(err => console.error('Erro fatal ao conectar no banco a
 
 pool.on('error', (err) => {
   console.error('ERRO CRÍTICO NO BANCO:', err);
+  // Não encerra o processo imediatamente para evitar loops de reinicialização no Render
 });
 
 export default pool;

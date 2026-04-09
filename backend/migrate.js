@@ -48,15 +48,12 @@ BEGIN
         ALTER TABLE transacoes ADD COLUMN pago BOOLEAN DEFAULT FALSE;
     END IF;
 END $$;
-<<<<<<< HEAD
 
 -- 6. Adicionar índices para performance
 CREATE INDEX IF NOT EXISTS idx_transacoes_usuario_id ON transacoes(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_transacoes_data ON transacoes(data);
 CREATE INDEX IF NOT EXISTS idx_transacoes_tipo ON transacoes(tipo);
 CREATE INDEX IF NOT EXISTS idx_transacoes_categoria ON transacoes(categoria);
-=======
->>>>>>> 11e16156afd01594bdc523cce4db453a29957cbb
 `;
 
 async function runMigration() {
