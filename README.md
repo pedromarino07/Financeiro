@@ -17,7 +17,7 @@ A aplicação permite:
 
 Este projeto foi **totalmente programado e estruturado por Pedro Marino Viana Lima**.
 
-Todas as decisões arquiteturais, a modelagem do banco de dados PostgreSQL, a lógica de backend em Node.js e a implementação do frontend foram realizadas exclusivamente pelo autor. Ferramentas de IA foram utilizadas apenas para a geração da estrutura base de diretórios e scripts iniciais de configuração (scaffolding), não interferindo na lógica de negócios ou no desenvolvimento do código proprietário.
+Todas as decisões arquiteturais, a modelagem do banco de dados PostgreSQL, a lógica de backend em Node.js e a implementação do frontend foram realizadas exclusivamente pelo autor. Ferramentas de IA foram utilizadas apenas para a geração da estrutura base de diretórios e scripts iniciais de configuração, não interferindo na lógica de negócios ou no desenvolvimento do código proprietário.
 
 ---
 
