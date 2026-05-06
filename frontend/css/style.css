@@ -207,7 +207,8 @@ main {
 /* Limitar altura do dropdown (funciona melhor se fosse um componente customizado, 
    mas como é nativo, aplicamos o que é possível) */
 #periodo {
-    max-height: 40px;
+    max-height: 250px;
+    overflow-y: auto;
 }
 
 #periodo option {
@@ -316,7 +317,7 @@ main {
 }
 
 .summary .card {
-    height: 140px; /* Altura fixa para garantir alinhamento 3x3 perfeito */
+    height: 140px; /* Altura fixa para garantir alinhamento perfeito */
     display: flex;
     flex-direction: column;
     justify-content: center;

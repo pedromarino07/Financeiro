@@ -60,6 +60,7 @@ router.get('/resumo', async (req, res) => {
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'entrada' AND categoria NOT IN ${catInvest} ${filterClause}) as total_entradas,
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND categoria NOT IN ${catInvest} ${filterClause}) as total_saidas,
         (SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) FROM transacoes WHERE usuario_id = $1 AND categoria IN ${catInvest} ${cumulativeParams}) as total_guardado,
+        (SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) FROM transacoes WHERE usuario_id = $1 AND categoria IN ${catInvest} ${filterClause}) as invest_mes,
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = TRUE AND categoria NOT IN ${catInvest} ${filterClause}) as total_pago,
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = FALSE AND categoria NOT IN ${catInvest} ${filterClause}) as total_pendente
     `;
@@ -69,12 +70,13 @@ router.get('/resumo', async (req, res) => {
     
     const total_entradas = parseFloat(summary.total_entradas || 0);
     const total_saidas = parseFloat(summary.total_saidas || 0);
-    const total_guardado = parseFloat(summary.total_guardado || 0);
+    const total_guardado = Math.abs(parseFloat(summary.total_guardado || 0)); // Exibir sempre positivo
+    const invest_mes = parseFloat(summary.invest_mes || 0);
     const total_pago = parseFloat(summary.total_pago || 0);
     const total_pendente = parseFloat(summary.total_pendente || 0);
     
-    // Regra de Negócio: Saldo Livre = Entradas do Mês - Saídas do Mês
-    const saldo_livre = total_entradas - total_saidas;
+    // Regra de Negócio: Saldo Livre = Entradas do Mês - Saídas do Mês - Guardado no Mês
+    const saldo_livre = total_entradas - total_saidas - invest_mes;
 
     res.json({
       total_entradas,
