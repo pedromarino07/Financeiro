@@ -202,7 +202,8 @@ main {
     background-repeat: no-repeat;
     background-position: right 0.4rem center;
     background-size: 1rem;
-    max-height: 38px; /* Altura do seletor fechado */
+    max-height: 250px; /* Limite de altura */
+    overflow-y: auto;  /* Scroll se necessário */
 }
 
 /* Nota: Estilizar o dropdown do <select> nativo é limitado. 
@@ -308,8 +309,7 @@ main {
 .summary {
     display: grid;
     grid-template-columns: repeat(3, 1fr); /* 3 colunas no desktop */
-    grid-template-rows: repeat(2, 1fr);   /* 2 linhas no desktop */
-    gap: 1.25rem;
+    gap: 20px;
     margin-bottom: 2rem;
     width: 100%;
 }

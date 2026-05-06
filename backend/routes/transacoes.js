@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
  */
 router.get('/resumo', async (req, res) => {
   const { mes, ano } = req.query;
-  const usuario_id = req.usuario_id;
+  const usuario_id = parseInt(req.usuario_id);
 
   if (!usuario_id) {
     return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -43,10 +43,14 @@ router.get('/resumo', async (req, res) => {
     let cumulativeParams = '';
 
     if (mes && ano) {
+      const m = parseInt(mes);
+      const a = parseInt(ano);
       filterClause = ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
-      values.push(parseInt(mes), parseInt(ano));
+      values.push(m, a);
+      
       // Filtro para acumulado: tudo até o final do mês selecionado
-      cumulativeParams = ' AND data < (make_date($3, $2, 1) + interval \'1 month\')';
+      // Usando uma lógica mais robusta para evitar erro de make_date caso os tipos não batam
+      cumulativeParams = ` AND data < (TO_DATE('${a}-' || LPAD('${m}', 2, '0') || '-01', 'YYYY-MM-DD') + INTERVAL '1 month')`;
     }
 
     const query = `
@@ -57,6 +61,7 @@ router.get('/resumo', async (req, res) => {
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = TRUE ${filterClause}) as total_pago,
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = FALSE ${filterClause}) as total_pendente
     `;
+    
     const { rows } = await pool.query(query, values);
     const summary = rows[0] || {};
     
@@ -67,7 +72,6 @@ router.get('/resumo', async (req, res) => {
     const total_pendente = parseFloat(summary.total_pendente || 0);
     
     // Regra de Negócio: Saldo Livre = Entradas Reais - Saídas Comuns - Investimento Líquido do Mês
-    // Investimento Líquido do Mês = (Entradas de Poupança) - (Saídas de Poupança)
     const queryInvestMes = `SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) as invest_mes FROM transacoes WHERE usuario_id = $1 AND categoria IN ('Poupança', 'Investimentos', 'Ações') ${filterClause}`;
     const resInvestMes = await pool.query(queryInvestMes, values);
     const total_invest_mes = parseFloat(resInvestMes.rows[0]?.invest_mes || 0);
