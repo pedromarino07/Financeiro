@@ -9,9 +9,9 @@ const itemsPerPage = 5; // Limite de itens por página
 let transacoesDoMes = []; // Armazena todas as transações do período atual para o modal
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Verificar se o usuário está logado
-    const usuarioId = localStorage.getItem('usuarioId');
-    const usuarioNome = localStorage.getItem('usuario_nome');
+    // 1. Verificar se o usuário está logado na sessão atual
+    const usuarioId = sessionStorage.getItem('usuarioId');
+    const usuarioNome = sessionStorage.getItem('usuario_nome');
 
     if (!usuarioId || !usuarioNome) {
         window.location.href = 'login.html';
@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnLogout) {
         btnLogout.addEventListener('click', () => {
-            localStorage.removeItem('usuarioId');
-            localStorage.removeItem('usuario_nome');
+            sessionStorage.clear(); // Limpa a sessão
+            localStorage.removeItem('filtroPeriodo'); // Limpa filtros se quiser um reset total
             window.location.href = 'login.html';
         });
     }
@@ -408,6 +408,7 @@ function abrirModalDetalhes(categoria) {
 async function enviarTransacao(event) {
     event.preventDefault();
     
+    const btnAdd = document.getElementById('btn-add');
     const descricao = document.getElementById('descricao').value;
     const valor = parseFloat(document.getElementById('valor').value);
     const data = document.getElementById('data').value;
@@ -419,12 +420,21 @@ async function enviarTransacao(event) {
 
     // Validação básica no frontend
     if (valor <= 0) {
-        alert('O valor deve ser maior que zero.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Valor Inválido',
+            text: 'O valor deve ser maior que zero.',
+            background: document.body.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+            color: document.body.classList.contains('dark-mode') ? '#fff' : '#1e293b'
+        });
         return;
     }
 
-    const usuarioId = localStorage.getItem('usuarioId');
-    const usuarioNome = localStorage.getItem('usuario_nome');
+    btnAdd.disabled = true;
+    btnAdd.innerHTML = '<span class="spinner"></span> Processando...';
+
+    const usuarioId = sessionStorage.getItem('usuarioId');
+    const usuarioNome = sessionStorage.getItem('usuario_nome');
 
     const novaTransacao = {
         descricao,
@@ -439,23 +449,39 @@ async function enviarTransacao(event) {
     };
 
     try {
+        // Implementação de Update Otimista (opcional aqui, mas vamos seguir a instrução)
+        // No caso de POST, o otimismo é mostrar sucesso imediato e atualizar se possível
         await postTransacao(novaTransacao);
         
-        // Limpa o cache para forçar recarregamento de dados novos
         dashboardCache.clear();
-
-        // Limpa o formulário após sucesso
         event.target.reset();
         if (document.getElementById('credit-card-fields')) {
             document.getElementById('credit-card-fields').style.display = 'none';
         }
         
-        // Atualiza o dashboard e os períodos automaticamente
         await carregarPeriodosEPagina();
         
-        showToast('Transação adicionada com sucesso!', 'success');
+        Swal.fire({
+            icon: 'success',
+            title: 'Sucesso!',
+            text: 'Transação adicionada com sucesso!',
+            timer: 2000,
+            showConfirmButton: false,
+            background: document.body.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+            color: document.body.classList.contains('dark-mode') ? '#fff' : '#1e293b'
+        });
     } catch (error) {
-        showToast('Erro ao adicionar transação: ' + error.message, 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: 'Erro ao adicionar transação: ' + error.message,
+            background: document.body.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+            color: document.body.classList.contains('dark-mode') ? '#fff' : '#1e293b'
+        });
+    } finally {
+        btnAdd.disabled = false;
+        btnAdd.innerHTML = '<i data-lucide="plus-circle"></i><span>Adicionar</span>';
+        lucide.createIcons();
     }
 }
 
@@ -563,27 +589,60 @@ function preencherTabela(transacoes) {
  * @param {string} id 
  */
 async function excluirTransacao(id) {
-    console.log('Tentando excluir ID:', id);
-    if (confirm('Tem certeza que deseja excluir esta transação?')) {
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    
+    const result = await Swal.fire({
+        title: 'Tem certeza?',
+        text: "Esta ação não pode ser desfeita!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar',
+        background: isDarkMode ? '#1e293b' : '#fff',
+        color: isDarkMode ? '#fff' : '#1e293b'
+    });
+
+    if (result.isConfirmed) {
+        // --- UPDATE OTIMISTA ---
+        // 1. Encontrar a linha na tabela e remover visualmente imediatamente
+        const row = document.querySelector(`button[onclick="excluirTransacao('${id}')"]`)?.closest('tr');
+        const originalDisplay = row ? row.style.display : null;
+        if (row) row.style.display = 'none';
+
         try {
             await deleteTransacao(id);
             
-            // Limpa o cache para forçar recarregamento de dados novos
             dashboardCache.clear();
-
-            // Se excluir o último item da página, volta uma página (se não for a primeira)
             const tbody = document.getElementById('transactions-body');
-            if (tbody.children.length === 1 && currentPage > 1) {
+            if (tbody.querySelectorAll('tr:not([style*="display: none"])').length === 0 && currentPage > 1) {
                 currentPage--;
             }
-            // Recarrega o dashboard para atualizar cards, gráfico e tabela
+            
             await carregarDashboard();
-            // Também recarrega os períodos caso a exclusão tenha removido o último registro de um mês
             await carregarPeriodosEPagina();
             
-            showToast('Transação excluída com sucesso!', 'success');
+            Swal.fire({
+                title: 'Excluído!',
+                text: 'A transação foi removida.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+                background: isDarkMode ? '#1e293b' : '#fff',
+                color: isDarkMode ? '#fff' : '#1e293b'
+            });
         } catch (error) {
-            showToast('Erro ao excluir: ' + error.message, 'error');
+            // Reverter se der erro
+            if (row) row.style.display = originalDisplay;
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: 'Erro ao excluir: ' + error.message,
+                background: isDarkMode ? '#1e293b' : '#fff',
+                color: isDarkMode ? '#fff' : '#1e293b'
+            });
         }
     }
 }
@@ -594,19 +653,44 @@ async function excluirTransacao(id) {
  * @param {boolean} statusAtual 
  */
 async function togglePago(id, statusAtual) {
+    // --- UPDATE OTIMISTA ---
+    const row = document.querySelector(`button[onclick*="togglePago('${id}'"]`)?.closest('tr');
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    
+    if (row) {
+        const novoStatus = !statusAtual;
+        row.style.opacity = novoStatus ? '0.6' : '1';
+        const icon = row.querySelector('.btn-pago i');
+        if (icon) {
+            icon.setAttribute('data-lucide', novoStatus ? 'check-circle-2' : 'circle');
+            lucide.createIcons();
+        }
+        const btn = row.querySelector('.btn-pago');
+        if (btn) {
+            btn.className = `btn-pago ${novoStatus ? 'pago' : 'pendente'}`;
+            btn.onclick = () => togglePago(id, novoStatus);
+        }
+    }
+
     try {
         const novoStatus = !statusAtual;
         await patchPago(id, novoStatus);
         
-        // Limpa o cache para forçar recarregamento
         dashboardCache.clear();
-        
-        // Recarrega o dashboard
         await carregarDashboard();
         
         showToast(`Transação marcada como ${novoStatus ? 'paga' : 'pendente'}.`, 'success');
     } catch (error) {
-        showToast('Erro ao atualizar status: ' + error.message, 'error');
+        // Reverter em caso de erro
+        await carregarDashboard();
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: 'Erro ao atualizar status: ' + error.message,
+            background: isDarkMode ? '#1e293b' : '#fff',
+            color: isDarkMode ? '#fff' : '#1e293b'
+        });
     }
 }
 

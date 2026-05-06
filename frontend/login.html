@@ -35,6 +35,7 @@
     </div>
 
     <script src="js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Inicializa os ícones do Lucide
         lucide.createIcons();
@@ -46,7 +47,11 @@
             const email = document.getElementById('email').value;
             const senha = document.getElementById('senha').value;
             const errorDiv = document.getElementById('login-error');
+            const btnLogin = document.getElementById('btn-login');
             
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
+
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
@@ -59,23 +64,41 @@
                 if (response.ok) {
                     const usuario = await response.json();
                     
-                    // Salvar no localStorage
-                    localStorage.setItem('usuarioId', usuario.id);
-                    localStorage.setItem('usuario_nome', usuario.nome);
+                    // Salvar no sessionStorage para apagar ao fechar a aba
+                    sessionStorage.setItem('usuarioId', usuario.id);
+                    sessionStorage.setItem('usuario_nome', usuario.nome);
                     
                     // Redirecionar para o dashboard
                     window.location.href = 'index.html';
                 } else {
                     errorDiv.style.display = 'block';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro de Login',
+                        text: 'E-mail ou senha incorretos.',
+                        background: '#1a1a1a',
+                        color: '#fff',
+                        confirmButtonColor: '#3d5afe'
+                    });
                 }
             } catch (error) {
                 console.error('Erro ao fazer login:', error);
-                alert('Erro ao conectar com o servidor.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro de Conexão',
+                    text: 'Não foi possível conectar ao servidor.',
+                    background: '#1a1a1a',
+                    color: '#fff',
+                    confirmButtonColor: '#3d5afe'
+                });
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Entrar';
             }
         });
 
-        // Se já estiver logado, vai direto pro index
-        if (localStorage.getItem('usuarioId') && localStorage.getItem('usuario_nome')) {
+        // Se já estiver logado (nesta sessão), vai direto pro index
+        if (sessionStorage.getItem('usuarioId') && sessionStorage.getItem('usuario_nome')) {
             window.location.href = 'index.html';
         }
     </script>

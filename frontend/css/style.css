@@ -723,6 +723,34 @@ tbody tr:hover {
     transition: opacity 0.3s ease;
 }
 
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* SweetAlert2 Dark Mode Adjustments */
+.swal2-popup {
+    border-radius: 1rem !important;
+}
+
+.dark-mode .swal2-popup {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+}
+
+.dark-mode .swal2-title, .dark-mode .swal2-html-container {
+    color: #f1f5f9 !important;
+}
+
 #btn-filter {
     background-color: var(--primary-color);
     color: #fff;

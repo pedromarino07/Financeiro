@@ -9,7 +9,7 @@ const API_BASE_URL = '/api/transacoes';
  * Retorna os headers padrão, incluindo o ID do usuário para privacidade
  */
 function getHeaders() {
-    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioId = sessionStorage.getItem('usuarioId');
     const headers = {
         'Content-Type': 'application/json'
     };
