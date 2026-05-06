@@ -202,6 +202,14 @@ main {
     background-repeat: no-repeat;
     background-position: right 0.4rem center;
     background-size: 1rem;
+    max-height: 38px; /* Altura do seletor fechado */
+}
+
+/* Nota: Estilizar o dropdown do <select> nativo é limitado. 
+   Se for necessário scroll e limite de itens garantido em todos os browsers, 
+   o ideal seria um componente customizado. Aplicando o que é possível via CSS: */
+#periodo option {
+    padding: 10px;
 }
 
 /* Formulário de Transação */
@@ -299,27 +307,28 @@ main {
 /* Resumo de Saldo */
 .summary {
     display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 colunas no desktop */
-    gap: 1rem;
+    grid-template-columns: repeat(3, 1fr); /* 3 colunas no desktop */
+    grid-template-rows: repeat(2, 1fr);   /* 2 linhas no desktop */
+    gap: 1.25rem;
     margin-bottom: 2rem;
     width: 100%;
 }
 
+.summary .card {
+    height: 100%; /* Garante que todos tenham a mesma altura */
+}
+
 @media (max-width: 1024px) {
     .summary {
-        grid-template-columns: repeat(3, 1fr); /* 3 colunas no tablet largo */
+        grid-template-columns: repeat(2, 1fr); /* 2 colunas no tablet */
+        grid-template-rows: auto;
     }
 }
 
 @media (max-width: 768px) {
     .summary {
-        grid-template-columns: repeat(2, 1fr); /* 2 colunas no tablet/celular largo */
-    }
-}
-
-@media (max-width: 480px) {
-    .summary {
         grid-template-columns: 1fr; /* 1 coluna no celular */
+        grid-template-rows: auto;
     }
 }
 
