@@ -48,39 +48,37 @@ router.get('/resumo', async (req, res) => {
       filterClause = ' AND EXTRACT(MONTH FROM data) = $2 AND EXTRACT(YEAR FROM data) = $3';
       values.push(m, a);
       
-      // Filtro para acumulado: tudo até o final do mês selecionado
-      // Usando uma lógica mais robusta para evitar erro de make_date caso os tipos não batam
+      // Filtro para acumulado: tudo até o último dia do período selecionado
       cumulativeParams = ` AND data < (TO_DATE('${a}-' || LPAD('${m}', 2, '0') || '-01', 'YYYY-MM-DD') + INTERVAL '1 month')`;
     }
 
+    // Categorias que são consideradas "Investimento/Guardado"
+    const catInvest = "('Poupança', 'Investimentos', 'Ações')";
+
     const query = `
       SELECT 
-        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'entrada' AND categoria NOT IN ('Poupança', 'Investimentos', 'Ações') ${filterClause}) as total_entradas,
-        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND categoria NOT IN ('Poupança', 'Investimentos', 'Ações') ${filterClause}) as total_saidas_comuns,
-        (SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) FROM transacoes WHERE usuario_id = $1 AND categoria IN ('Poupança', 'Investimentos', 'Ações') ${cumulativeParams}) as total_guardado,
-        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = TRUE ${filterClause}) as total_pago,
-        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = FALSE ${filterClause}) as total_pendente
+        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'entrada' AND categoria NOT IN ${catInvest} ${filterClause}) as total_entradas,
+        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND categoria NOT IN ${catInvest} ${filterClause}) as total_saidas,
+        (SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) FROM transacoes WHERE usuario_id = $1 AND categoria IN ${catInvest} ${cumulativeParams}) as total_guardado,
+        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = TRUE AND categoria NOT IN ${catInvest} ${filterClause}) as total_pago,
+        (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = FALSE AND categoria NOT IN ${catInvest} ${filterClause}) as total_pendente
     `;
     
     const { rows } = await pool.query(query, values);
     const summary = rows[0] || {};
     
     const total_entradas = parseFloat(summary.total_entradas || 0);
-    const total_saidas_comuns = parseFloat(summary.total_saidas_comuns || 0);
+    const total_saidas = parseFloat(summary.total_saidas || 0);
     const total_guardado = parseFloat(summary.total_guardado || 0);
     const total_pago = parseFloat(summary.total_pago || 0);
     const total_pendente = parseFloat(summary.total_pendente || 0);
     
-    // Regra de Negócio: Saldo Livre = Entradas Reais - Saídas Comuns - Investimento Líquido do Mês
-    const queryInvestMes = `SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) as invest_mes FROM transacoes WHERE usuario_id = $1 AND categoria IN ('Poupança', 'Investimentos', 'Ações') ${filterClause}`;
-    const resInvestMes = await pool.query(queryInvestMes, values);
-    const total_invest_mes = parseFloat(resInvestMes.rows[0]?.invest_mes || 0);
-
-    const saldo_livre = total_entradas - total_saidas_comuns - total_invest_mes;
+    // Regra de Negócio: Saldo Livre = Entradas do Mês - Saídas do Mês
+    const saldo_livre = total_entradas - total_saidas;
 
     res.json({
       total_entradas,
-      total_saidas: total_saidas_comuns,
+      total_saidas,
       total_guardado, 
       total_pago,
       total_pendente,

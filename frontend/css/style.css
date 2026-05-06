@@ -202,15 +202,16 @@ main {
     background-repeat: no-repeat;
     background-position: right 0.4rem center;
     background-size: 1rem;
-    max-height: 250px; /* Limite de altura */
-    overflow-y: auto;  /* Scroll se necessário */
 }
 
-/* Nota: Estilizar o dropdown do <select> nativo é limitado. 
-   Se for necessário scroll e limite de itens garantido em todos os browsers, 
-   o ideal seria um componente customizado. Aplicando o que é possível via CSS: */
+/* Limitar altura do dropdown (funciona melhor se fosse um componente customizado, 
+   mas como é nativo, aplicamos o que é possível) */
+#periodo {
+    max-height: 40px;
+}
+
 #periodo option {
-    padding: 10px;
+    padding: 8px;
 }
 
 /* Formulário de Transação */
@@ -315,7 +316,10 @@ main {
 }
 
 .summary .card {
-    height: 100%; /* Garante que todos tenham a mesma altura */
+    height: 140px; /* Altura fixa para garantir alinhamento 3x3 perfeito */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 @media (max-width: 1024px) {
