@@ -34,12 +34,28 @@ async function getResumo(mes, ano) {
             headers: getHeaders()
         });
         if (!response.ok) {
-            throw new Error('Erro ao buscar resumo financeiro');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Erro no servidor ao buscar resumo:', errorData);
+            return {
+                total_entradas: 0,
+                total_saidas: 0,
+                total_guardado: 0,
+                total_pago: 0,
+                total_pendente: 0,
+                saldo: 0
+            };
         }
         return await response.json();
     } catch (error) {
         console.error('Erro na API (Resumo):', error);
-        throw error;
+        return {
+            total_entradas: 0,
+            total_saidas: 0,
+            total_guardado: 0,
+            total_pago: 0,
+            total_pendente: 0,
+            saldo: 0
+        };
     }
 }
 

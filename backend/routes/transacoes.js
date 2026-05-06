@@ -58,32 +58,40 @@ router.get('/resumo', async (req, res) => {
         (SELECT COALESCE(SUM(valor), 0) FROM transacoes WHERE usuario_id = $1 AND tipo = 'saida' AND pago = FALSE ${filterClause}) as total_pendente
     `;
     const { rows } = await pool.query(query, values);
+    const summary = rows[0] || {};
     
-    const total_entradas = parseFloat(rows[0].total_entradas);
-    const total_saidas_comuns = parseFloat(rows[0].total_saidas_comuns);
-    const total_guardado = parseFloat(rows[0].total_guardado);
-    const total_pago = parseFloat(rows[0].total_pago);
-    const total_pendente = parseFloat(rows[0].total_pendente);
+    const total_entradas = parseFloat(summary.total_entradas || 0);
+    const total_saidas_comuns = parseFloat(summary.total_saidas_comuns || 0);
+    const total_guardado = parseFloat(summary.total_guardado || 0);
+    const total_pago = parseFloat(summary.total_pago || 0);
+    const total_pendente = parseFloat(summary.total_pendente || 0);
     
     // Regra de Negócio: Saldo Livre = Entradas Reais - Saídas Comuns - Investimento Líquido do Mês
     // Investimento Líquido do Mês = (Entradas de Poupança) - (Saídas de Poupança)
     const queryInvestMes = `SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) as invest_mes FROM transacoes WHERE usuario_id = $1 AND categoria IN ('Poupança', 'Investimentos', 'Ações') ${filterClause}`;
     const resInvestMes = await pool.query(queryInvestMes, values);
-    const total_invest_mes = parseFloat(resInvestMes.rows[0].invest_mes);
+    const total_invest_mes = parseFloat(resInvestMes.rows[0]?.invest_mes || 0);
 
     const saldo_livre = total_entradas - total_saidas_comuns - total_invest_mes;
 
     res.json({
-      total_entradas: total_entradas,
+      total_entradas,
       total_saidas: total_saidas_comuns,
-      total_guardado: total_guardado, // Este é o acumulado solicitado
-      total_pago: total_pago,
-      total_pendente: total_pendente,
+      total_guardado, 
+      total_pago,
+      total_pendente,
       saldo: saldo_livre
     });
   } catch (error) {
-    console.error('Erro ao buscar resumo das transações:', error);
-    res.status(500).json({ error: 'Erro no banco' });
+    console.error('ERRO CRÍTICO NO RESUMO:', {
+      message: error.message,
+      stack: error.stack,
+      params: { mes, ano, usuario_id }
+    });
+    res.status(500).json({ 
+      error: 'Erro no banco',
+      details: error.message 
+    });
   }
 });
 
